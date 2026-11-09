@@ -2,6 +2,41 @@ import type { Project } from "@/types";
 
 export const projects: Project[] = [
   {
+    slug: "global-cse-juniors",
+    title: "Global CSE Juniors",
+    shortDescription:
+      "Nền tảng giáo dục trực tuyến giúp trẻ em học tập, giao lưu và kết nối với bạn bè trên khắp thế giới.",
+    description:
+      "Global CSE Juniors là nền tảng học tập tương tác trực tuyến dành cho trẻ em toàn cầu, tạo môi trường an toàn và sinh động để các em vừa rèn luyện kỹ năng, ngoại ngữ vừa giao lưu văn hóa và kết nối với bạn bè, giáo viên quốc tế.",
+    problem:
+      "Trẻ em khi học trực tuyến thường thiếu môi trường tương tác thực tế với bạn bè quốc tế, các nền tảng hiện có chưa tối ưu trải nghiệm thân thiện cho lứa tuổi nhỏ và khó mở rộng khi lượng người dùng toàn cầu tăng cao.",
+    solution:
+      "Xây dựng hệ thống theo kiến trúc .NET Microservices kết hợp cơ sở dữ liệu PostgreSQL đảm bảo hiệu năng và khả năng mở rộng cao. Giao diện Frontend ReactJS được thiết kế trực quan, sinh động, tích hợp lớp học tương tác thời gian thực và kết nối cộng đồng học sinh đa quốc gia.",
+    role: "Full-stack Developer",
+    technologies: [
+      "React.js",
+      ".NET Microservices",
+      "PostgreSQL",
+      "TypeScript",
+      "Docker",
+      "RESTful API",
+    ],
+    features: [
+      "Không gian học tập và giao lưu trực tuyến kết nối trẻ em toàn cầu",
+      "Lớp học tương tác trực tiếp với giáo viên và bạn bè quốc tế",
+      "Lộ trình bài học sinh động, cá nhân hóa theo độ tuổi",
+      "Kiến trúc .NET Microservices chịu tải cao, dễ dàng mở rộng",
+      "Quản lý hồ sơ học tập và theo dõi tiến độ dành cho phụ huynh",
+      "Giao diện đa ngôn ngữ, thân thiện và an toàn cho trẻ nhỏ",
+    ],
+    screenshots: ["/images/projects/juniors-globalcse.jpg"],
+    demoUrl: "https://juniors.globalcse.org/",
+    githubUrl: undefined,
+    year: "2025",
+    status: "in-progress",
+    featured: true,
+  },
+  {
     slug: "ecommerce-platform",
     title: "E-Commerce Platform",
     shortDescription:

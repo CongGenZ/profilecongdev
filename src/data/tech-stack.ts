@@ -7,7 +7,7 @@ export const techStack: TechCategory[] = [
   },
   {
     category: "Backend",
-    items: ["Node.js", "NestJS", "Express", "REST API"],
+    items: [".NET / C#", "Microservices", "Node.js", "NestJS", "Express", "REST API"],
   },
   {
     category: "Database",
