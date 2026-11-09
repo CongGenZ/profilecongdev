@@ -37,10 +37,20 @@ function extractName(message: string): string | null {
   return null;
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 async function sendTelegramMessage(text: string): Promise<number | null> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return null;
+  if (!token || !chatId) {
+    console.error("[chat/telegram] Thiếu TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong env");
+    return null;
+  }
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -48,10 +58,14 @@ async function sendTelegramMessage(text: string): Promise<number | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
     });
-    const data = await res.json() as { ok: boolean; result?: { message_id: number } };
-    return data.ok ? (data.result?.message_id ?? null) : null;
+    const data = (await res.json()) as { ok: boolean; result?: { message_id: number }; description?: string; error_code?: number };
+    if (!data.ok) {
+      console.error("[chat/telegram] Lỗi từ Telegram API:", data.error_code, data.description);
+      return null;
+    }
+    return data.result?.message_id ?? null;
   } catch (err) {
-    console.error("[chat/telegram]", err);
+    console.error("[chat/telegram] Lỗi kết nối Telegram:", err);
     return null;
   }
 }
@@ -112,11 +126,13 @@ export async function POST(req: NextRequest) {
     if (msgErr || !savedMsg) throw msgErr ?? new Error("Cannot save message");
 
     // 3. Gửi thông báo Telegram
-    const label = visitorName ? `👤 <b>${visitorName}</b>` : "👤 Khách (chưa rõ tên)";
+    const safeVisitorName = visitorName ? escapeHtml(visitorName) : null;
+    const safeMessage = escapeHtml(message);
+    const label = safeVisitorName ? `👤 <b>${safeVisitorName}</b>` : "👤 Khách (chưa rõ tên)";
     const telegramText =
       `💬 <b>Tin nhắn mới</b> — ${label}\n` +
       `<code>#sid_${sid.slice(0, 8)}</code>\n\n` +
-      `${message}\n\n` +
+      `${safeMessage}\n\n` +
       `<i>↩️ Reply tin nhắn này để trả lời.</i>`;
 
     const telegramMsgId = await sendTelegramMessage(telegramText);
@@ -135,3 +151,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lỗi server. Vui lòng thử lại." }, { status: 500 });
   }
 }
+
+// ─── GET /api/chat?sessionId=<id> ──────────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get("sessionId");
+
+    if (!sessionId) {
+      return NextResponse.json({ messages: [] });
+    }
+
+    const db = createServerClient();
+    const { data, error } = await db
+      .from("chat_messages")
+      .select("id, role, text, created_at")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("[chat/get]", error);
+      return NextResponse.json({ error: "Không thể lấy lịch sử chat." }, { status: 500 });
+    }
+
+    const messages = (data ?? []).map(m => ({
+      id: m.id,
+      role: m.role as "user" | "bot" | "admin",
+      text: m.text,
+      time: new Date(m.created_at).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      created_at: m.created_at,
+    }));
+
+    return NextResponse.json({ messages });
+  } catch (err) {
+    console.error("[chat/get]", err);
+    return NextResponse.json({ error: "Lỗi server." }, { status: 500 });
+  }
+}
+

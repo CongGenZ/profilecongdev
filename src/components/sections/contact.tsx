@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CheckCircle, AlertCircle, Mail, Clock, Send } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, Mail, Clock, Send, Phone } from "lucide-react";
 import { GithubIcon, LinkedinIcon } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,12 @@ const projectTypes = [
 ];
 
 const contactLinks = [
+  {
+    icon: Phone,
+    label: "Hotline / Zalo",
+    value: "0968 261 603",
+    href: "tel:0968261603",
+  },
   {
     icon: Mail,
     label: "Email",
@@ -110,14 +116,25 @@ export function Contact() {
 
             {status === "success" ? (
               <div
-                className="flex items-start gap-3 p-5 rounded-xl border"
+                className="p-6 rounded-xl border space-y-4"
                 style={{ borderColor: "#bbf7d0", backgroundColor: "#f0fdf4" }}
               >
-                <CheckCircle size={20} className="text-green-600 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-green-800 mb-0.5">Gửi thành công!</p>
-                  <p className="text-sm text-green-700">{message}</p>
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={22} className="text-green-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-base font-semibold text-green-900 mb-1">Gửi thành công!</p>
+                    <p className="text-sm text-green-700 leading-relaxed">{message}</p>
+                  </div>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStatus("idle")}
+                  className="text-xs font-medium border-green-300 text-green-800 hover:bg-green-100"
+                >
+                  Gửi yêu cầu khác
+                </Button>
               </div>
             ) : (
               <Form {...form}>

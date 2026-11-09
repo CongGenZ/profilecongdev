@@ -42,6 +42,11 @@ export interface Profile {
   tagline: string;
   bio: string;
   email: string;
+  phone?: string;
+  address?: string;
+  mapEmbedUrl?: string;
+  mapDirectionsUrl?: string;
+  logo?: string;
   github: string;
   linkedin: string;
   avatar: string;

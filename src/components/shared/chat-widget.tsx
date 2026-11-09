@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { MessageCircle, X, Send, Loader2, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { getSupabaseClient } from "@/lib/supabase";
 
@@ -12,6 +12,7 @@ interface Message {
   role: "user" | "bot" | "admin";
   text: string;
   time: string;
+  created_at?: string;
 }
 
 function getTime() {
@@ -34,17 +35,33 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true);
+  const [hasUnread, setHasUnread] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Khôi phục sessionId từ localStorage khi load lại trang
+  // Khôi phục sessionId và tải lịch sử chat cũ khi load trang
   useEffect(() => {
     try {
       const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) setSessionId(stored);
+      if (stored) {
+        queueMicrotask(() => {
+          setSessionId(stored);
+        });
+
+        // Fetch lịch sử tin nhắn
+        fetch(`/api/chat?sessionId=${stored}`)
+          .then(res => res.json())
+          .then((data: { messages?: Message[] }) => {
+            if (data.messages && data.messages.length > 0) {
+              setMessages([WELCOME, ...data.messages]);
+            }
+          })
+          .catch(err => {
+            console.error("[chat-widget] Lỗi tải lịch sử chat:", err);
+          });
+      }
     } catch { /* private mode hoặc storage bị block */ }
   }, []);
 
@@ -55,47 +72,95 @@ export function ChatWidget() {
 
   useEffect(() => {
     if (open) {
-      setHasUnread(false);
       setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [open]);
 
-  // ── Supabase Broadcast subscription ─────────────────────────────────────
-  // Dùng Broadcast thay vì Postgres Changes:
-  // - Client không đọc bảng → không cần anon key có quyền SELECT
-  // - Server push vào kênh chat:<uuid> → client chỉ nghe kênh của chính mình
-  // - UUID 128-bit ngẫu nhiên → không thể đoán để nghe lén session khác
+  // ── Xử lý tin nhắn đến (Deduplication) ───────────────────────────────────
+  const handleIncomingMessage = useCallback(
+    (newMsg: { id: string; role?: "user" | "bot" | "admin"; text: string; created_at?: string }) => {
+      setMessages(prev => {
+        // Tránh trùng lặp tin nhắn nếu cả Postgres Changes và Broadcast cùng bắn
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+
+        return [
+          ...prev,
+          {
+            id: newMsg.id,
+            role: (newMsg.role === "bot" ? "bot" : "admin") as "admin" | "bot",
+            text: newMsg.text,
+            time: newMsg.created_at
+              ? new Date(newMsg.created_at).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : getTime(),
+            created_at: newMsg.created_at,
+          },
+        ];
+      });
+
+      setHasUnread(prev => (open ? prev : true));
+    },
+    [open]
+  );
+
+  // ── Supabase Realtime subscription ──────────────────────────────────────
+  // Kết hợp cả Postgres Changes và Broadcast:
+  // - Postgres Changes: Tự động bắt sự kiện INSERT từ database chat_messages.
+  // - Broadcast: Nhận trực tiếp sự kiện server push qua topic.
   useEffect(() => {
     if (!sessionId) return;
 
     const client = getSupabaseClient();
-    const channel = client
+
+    // 1. Channel Postgres Changes
+    const dbChannel = client
+      .channel(`chat-db:${sessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        payload => {
+          const row = payload.new as { id: string; role: "user" | "bot" | "admin"; text: string; created_at: string };
+          // Chỉ thêm tin nhắn từ admin hoặc bot (tin của user đã thêm optimistic ở client)
+          if (row.role === "admin" || row.role === "bot") {
+            handleIncomingMessage(row);
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Channel Broadcast (Dự phòng)
+    const broadcastChannel = client
       .channel(`chat:${sessionId}`)
       .on(
         "broadcast",
         { event: "new_message" },
         ({ payload }: { payload: { id: string; text: string; created_at: string } }) => {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: payload.id,
-              role: "admin" as const,
-              text: payload.text,
-              time: new Date(payload.created_at).toLocaleTimeString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            },
-          ]);
-          setHasUnread(prev => (open ? prev : true));
+          handleIncomingMessage({ ...payload, role: "admin" });
         }
       )
       .subscribe();
 
     return () => {
-      client.removeChannel(channel);
+      client.removeChannel(dbChannel);
+      client.removeChannel(broadcastChannel);
     };
-  }, [sessionId, open]);
+  }, [sessionId, handleIncomingMessage]);
+
+  // ── Bắt đầu phiên chat mới ──────────────────────────────────────────────
+  const resetSession = () => {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch { /* ignore */ }
+    setSessionId(undefined);
+    setMessages([WELCOME]);
+  };
 
   // ── Send message ─────────────────────────────────────────────────────────
 
@@ -104,9 +169,10 @@ export function ChatWidget() {
     if (!text || sending) return;
 
     // Thêm tin nhắn của user vào UI ngay lập tức
+    const tempId = `temp-${Date.now()}`;
     setMessages(prev => [
       ...prev,
-      { id: Date.now().toString(), role: "user", text, time: getTime() },
+      { id: tempId, role: "user", text, time: getTime() },
     ]);
     setInput("");
     setSending(true);
@@ -117,33 +183,41 @@ export function ChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, sessionId }),
       });
-      const data = await res.json() as { sessionId?: string; error?: string };
+      const data = (await res.json()) as { sessionId?: string; error?: string };
 
       if (!res.ok) throw new Error(data.error ?? "Server error");
 
       // Lưu sessionId để dùng cho lần gửi tiếp và subscribe realtime
       if (data.sessionId && data.sessionId !== sessionId) {
         setSessionId(data.sessionId);
-        try { localStorage.setItem(SESSION_KEY, data.sessionId); } catch { /* ignore */ }
+        try {
+          localStorage.setItem(SESSION_KEY, data.sessionId);
+        } catch { /* ignore */ }
       }
 
-      // Xác nhận đã nhận tin — admin sẽ reply qua Telegram → realtime
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `ack-${Date.now()}`,
-          role: "bot",
-          text: "Mình đã nhận được tin nhắn của bạn! Sẽ phản hồi trong thời gian sớm nhất ⏳",
-          time: getTime(),
-        },
-      ]);
+      // Xác nhận đã nhận tin nếu chưa có thông báo trước đó
+      setMessages(prev => {
+        const hasAck = prev.some(m => m.id.startsWith("ack-"));
+        if (!hasAck) {
+          return [
+            ...prev,
+            {
+              id: `ack-${Date.now()}`,
+              role: "bot",
+              text: "Mình đã nhận được tin nhắn của bạn! Sẽ phản hồi trong thời gian sớm nhất ⏳",
+              time: getTime(),
+            },
+          ];
+        }
+        return prev;
+      });
     } catch {
       setMessages(prev => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           role: "bot",
-          text: "Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc email trực tiếp nhé!",
+          text: "Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc gửi email nhé!",
           time: getTime(),
         },
       ]);
@@ -151,6 +225,7 @@ export function ChatWidget() {
       setSending(false);
     }
   };
+
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -191,12 +266,24 @@ export function ChatWidget() {
                 <p className="text-sm font-semibold text-white leading-none mb-0.5">Cong Dev</p>
                 <p className="text-xs text-white/70">Thường trả lời trong vài giờ</p>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              >
-                <X size={14} className="text-white" />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {sessionId && (
+                  <button
+                    onClick={resetSession}
+                    title="Bắt đầu phiên chat mới"
+                    className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  >
+                    <RotateCcw size={13} className="text-white" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setOpen(false)}
+                  title="Đóng"
+                  className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  <X size={14} className="text-white" />
+                </button>
+              </div>
             </div>
 
             {/* Messages area */}
@@ -305,7 +392,13 @@ export function ChatWidget() {
 
       {/* ── Toggle button ── */}
       <motion.button
-        onClick={() => setOpen(v => !v)}
+        onClick={() =>
+          setOpen((v) => {
+            const next = !v;
+            if (next) setHasUnread(false);
+            return next;
+          })
+        }
         whileTap={{ scale: 0.9 }}
         className="fixed z-50 flex items-center justify-center rounded-full cursor-pointer"
         style={{

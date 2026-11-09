@@ -7,16 +7,22 @@ interface TelegramUpdate {
   update_id: number;
   message?: {
     message_id: number;
+    chat?: {
+      id: number | string;
+    };
     text?: string;
+    caption?: string;
     reply_to_message?: {
       message_id: number;
+      text?: string;
+      caption?: string;
     };
   };
 }
 
 // ─── Supabase Broadcast (server-side REST API) ─────────────────────────────
-// Dùng REST thay vì JS client channel vì API route không giữ WebSocket lâu dài.
-// Server push vào kênh chat:<sessionId> → widget nhận qua Broadcast subscription.
+// Push đồng thời vào cả `chat:<sessionId>` và `realtime:chat:<sessionId>`
+// để tương thích hoàn toàn với tất cả cấu hình Realtime client.
 
 async function broadcastToSession(sessionId: string, payload: object) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,11 +38,18 @@ async function broadcastToSession(sessionId: string, payload: object) {
         "apikey": serviceKey,
       },
       body: JSON.stringify({
-        messages: [{
-          topic: `realtime:chat:${sessionId}`,
-          event: "new_message",
-          payload,
-        }],
+        messages: [
+          {
+            topic: `chat:${sessionId}`,
+            event: "new_message",
+            payload,
+          },
+          {
+            topic: `realtime:chat:${sessionId}`,
+            event: "new_message",
+            payload,
+          },
+        ],
       }),
     });
   } catch (err) {
@@ -46,7 +59,6 @@ async function broadcastToSession(sessionId: string, payload: object) {
 
 // ─── POST /api/telegram-webhook ────────────────────────────────────────────
 // Telegram gọi endpoint này mỗi khi có tin nhắn mới vào bot.
-// Chỉ xử lý khi admin reply một tin nhắn (reply_to_message tồn tại).
 
 export async function POST(req: NextRequest) {
   // Xác thực secret token (set khi đăng ký webhook với Telegram)
@@ -62,41 +74,101 @@ export async function POST(req: NextRequest) {
     const update: TelegramUpdate = await req.json();
     const msg = update.message;
 
-    // Bỏ qua nếu không phải reply hoặc không có text
-    if (!msg?.text || !msg.reply_to_message) {
+    // Hỗ trợ cả text và caption (nếu admin gửi kèm ảnh)
+    const replyText = msg?.text || msg?.caption;
+
+    // Bỏ qua nếu không có nội dung chữ
+    if (!replyText || !msg) {
       return NextResponse.json({ ok: true });
     }
 
-    const replyToMsgId = msg.reply_to_message.message_id;
     const db = createServerClient();
+    let targetSessionId: string | undefined;
 
-    // Tìm session từ telegram_message_id của tin nhắn gốc
-    const { data: original, error } = await db
-      .from("chat_messages")
-      .select("session_id")
-      .eq("telegram_message_id", replyToMsgId)
-      .single();
+    // Trường hợp 1: Admin dùng chức năng Reply
+    if (msg.reply_to_message) {
+      const replyToMsgId = msg.reply_to_message.message_id;
 
-    if (error || !original) {
-      // Admin reply tin nhắn không phải notification của bot — bỏ qua
+      // 1.1 Tìm session từ telegram_message_id của tin nhắn gốc
+      const { data: original } = await db
+        .from("chat_messages")
+        .select("session_id")
+        .eq("telegram_message_id", replyToMsgId)
+        .single();
+
+      targetSessionId = original?.session_id;
+
+      // 1.2 Dự phòng: nếu không tìm thấy qua ID, tìm qua hashtag `#sid_xxxx`
+      if (!targetSessionId) {
+        const sourceText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
+        const match = sourceText.match(/#sid_([a-f0-9-]+)/i);
+        if (match?.[1]) {
+          const prefix = match[1];
+          const { data: session } = await db
+            .from("chat_sessions")
+            .select("id")
+            .ilike("id", `${prefix}%`)
+            .single();
+          if (session) {
+            targetSessionId = session.id;
+          }
+        }
+      }
+    }
+
+    // Trường hợp 2: Admin gõ tin nhắn trực tiếp cho bot mà KHÔNG bấm Reply
+    // Tự động gán vào phiên chat gần nhất đang mở
+    if (!targetSessionId) {
+      const adminChatId = process.env.TELEGRAM_CHAT_ID;
+      const incomingChatId = msg.chat?.id ? String(msg.chat.id) : undefined;
+
+      // Chỉ kích hoạt tự động nếu tin nhắn đến từ đúng admin chat ID
+      if (!adminChatId || incomingChatId === String(adminChatId)) {
+        const { data: latestSession } = await db
+          .from("chat_sessions")
+          .select("id")
+          .eq("status", "open")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestSession) {
+          targetSessionId = latestSession.id;
+        }
+      }
+    }
+
+    if (!targetSessionId) {
+      // Tin nhắn không thuộc phiên chat nào — bỏ qua an toàn
       return NextResponse.json({ ok: true });
     }
 
-    // Lưu phản hồi của admin vào Supabase
-    const { data: newMsg } = await db
+    // 3. Lưu phản hồi của admin vào Supabase kèm telegram_message_id
+    // Việc lưu telegram_message_id giúp admin có thể reply tiếp vào chính tin nhắn này (chuỗi reply)
+    const { data: newMsg, error: insertErr } = await db
       .from("chat_messages")
-      .insert({ session_id: original.session_id, role: "admin", text: msg.text })
+      .insert({
+        session_id: targetSessionId,
+        role: "admin",
+        text: replyText,
+        telegram_message_id: msg.message_id,
+      })
       .select("id, created_at")
       .single();
 
-    // Broadcast tới widget của khách — chỉ kênh chat:<uuid> đó mới nhận được
-    if (newMsg) {
-      await broadcastToSession(original.session_id, {
-        id: newMsg.id,
-        text: msg.text,
-        created_at: newMsg.created_at,
-      });
+    if (insertErr || !newMsg) {
+      console.error("[telegram-webhook] Insert message error:", insertErr);
+      return NextResponse.json({ ok: true });
     }
+
+    // 4. Broadcast tới widget của khách (qua Realtime Broadcast)
+    // Lưu ý: bảng chat_messages có kích hoạt Realtime publication nên
+    // nếu widget subscribe postgres_changes thì sự kiện cũng đã tự động được gửi đi!
+    await broadcastToSession(targetSessionId, {
+      id: newMsg.id,
+      text: replyText,
+      created_at: newMsg.created_at,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -105,3 +177,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 }
+

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +26,8 @@ const navLinks = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -34,9 +38,16 @@ export function Header() {
   const handleNavClick = (href: string) => {
     setOpen(false);
     const id = href.replace("#", "");
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
+
+    // Nếu đang ở trang chủ → cuộn mượt đến section
+    if (pathname === "/") {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      // Nếu đang ở trang khác (vd: /projects/xxx) → điều hướng về trang chủ kèm anchor
+      router.push(`/${href}`);
     }
   };
 
@@ -50,15 +61,23 @@ export function Header() {
       style={{ borderColor: scrolled ? "var(--border-color)" : "transparent" }}
     >
       <div className="container-width">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link
             href="/"
-            className="font-semibold text-base tracking-tight transition-colors hover:text-[var(--accent-color)]"
-            style={{ color: "var(--text-primary)" }}
+            aria-label={profile.displayName}
+            className="flex items-center transition-transform hover:scale-105 group"
           >
-            {profile.displayName}
-            <span style={{ color: "var(--accent-color)" }}>.</span>
+            <div className="relative w-11 h-11 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-[var(--border-color)] group-hover:border-[var(--accent-color)] transition-all duration-300 shadow-sm">
+              <Image
+                src={profile.logo || "/congdev.png"}
+                alt={profile.displayName}
+                fill
+                sizes="(max-width: 768px) 44px, 48px"
+                className="object-cover"
+                priority
+              />
+            </div>
           </Link>
 
           {/* Desktop nav */}
@@ -108,12 +127,16 @@ export function Header() {
                 style={{ backgroundColor: "var(--bg-base)" }}
               >
                 <SheetHeader>
-                  <SheetTitle
-                    className="text-left font-semibold"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {profile.displayName}
-                    <span style={{ color: "var(--accent-color)" }}>.</span>
+                  <SheetTitle className="text-left font-semibold">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[var(--border-color)] shadow-sm">
+                      <Image
+                        src={profile.logo || "/congdev.png"}
+                        alt={profile.displayName}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    </div>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 mt-6">
