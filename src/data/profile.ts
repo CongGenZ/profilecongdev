@@ -16,7 +16,7 @@ Hiện tại mình đang nhận các dự án freelance về phát triển websi
   mapEmbedUrl: "https://maps.google.com/maps?q=Keangnam+Hanoi+Landmark+Tower,+Ph%E1%BA%A1m+H%C3%B9ng,+M%E1%BB%85+Tr%C3%AC,+Nam+T%E1%BB%AB+Li%C3%AAm,+H%C3%A0+N%E1%BB%99i&t=&z=15&ie=UTF8&iwloc=&output=embed",
   mapDirectionsUrl: "https://www.google.com/maps/search/?api=1&query=Keangnam+Hanoi+Landmark+Tower+Hanoi",
   logo: "/congdev.png",
-  github: "https://github.com/nvcong25042003",
+  github: "https://github.com/CongGenZ",
   linkedin: "https://linkedin.com/in/nvcong25042003",
   avatar: "/images/profile/cong.jpg",
   available: true,
