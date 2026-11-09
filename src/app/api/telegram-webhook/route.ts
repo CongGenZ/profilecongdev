@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
         .from("chat_messages")
         .select("session_id")
         .eq("telegram_message_id", replyToMsgId)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       targetSessionId = original?.session_id;
 
@@ -103,44 +104,72 @@ export async function POST(req: NextRequest) {
         const sourceText = msg.reply_to_message.text || msg.reply_to_message.caption || "";
         const match = sourceText.match(/#sid_([a-f0-9-]+)/i);
         if (match?.[1]) {
-          const prefix = match[1];
-          const { data: session } = await db
-            .from("chat_sessions")
-            .select("id")
-            .ilike("id", `${prefix}%`)
-            .single();
-          if (session) {
-            targetSessionId = session.id;
+          const sidCandidate = match[1].toLowerCase();
+          if (sidCandidate.length === 36) {
+            // UUID đầy đủ
+            const { data: session } = await db
+              .from("chat_sessions")
+              .select("id")
+              .eq("id", sidCandidate)
+              .maybeSingle();
+            if (session) {
+              targetSessionId = session.id;
+            }
+          } else {
+            // Prefix 8 ký tự (tương thích tin nhắn cũ): lấy danh sách phiên gần đây và khớp prefix
+            const { data: recentSessions } = await db
+              .from("chat_sessions")
+              .select("id")
+              .order("created_at", { ascending: false })
+              .limit(50);
+            const matched = recentSessions?.find(s => s.id.toLowerCase().startsWith(sidCandidate));
+            if (matched) {
+              targetSessionId = matched.id;
+            }
           }
         }
       }
     }
 
-    // Trường hợp 2: Admin gõ tin nhắn trực tiếp cho bot mà KHÔNG bấm Reply
-    // Tự động gán vào phiên chat gần nhất đang mở
+    // Trường hợp 2: Admin gõ tin nhắn trực tiếp cho bot mà KHÔNG bấm Reply (hoặc không tìm được qua reply)
+    // Tự động gán vào phiên chat có tin nhắn mới nhất
     if (!targetSessionId) {
       const adminChatId = process.env.TELEGRAM_CHAT_ID;
       const incomingChatId = msg.chat?.id ? String(msg.chat.id) : undefined;
 
       // Chỉ kích hoạt tự động nếu tin nhắn đến từ đúng admin chat ID
-      if (!adminChatId || incomingChatId === String(adminChatId)) {
-        const { data: latestSession } = await db
-          .from("chat_sessions")
-          .select("id")
-          .eq("status", "open")
-          .order("updated_at", { ascending: false })
+      if (!adminChatId || incomingChatId === String(adminChatId).trim()) {
+        // Ưu tiên tìm session từ tin nhắn của khách gần nhất trong chat_messages
+        const { data: latestUserMsg } = await db
+          .from("chat_messages")
+          .select("session_id")
+          .eq("role", "user")
+          .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (latestSession) {
-          targetSessionId = latestSession.id;
+        if (latestUserMsg?.session_id) {
+          targetSessionId = latestUserMsg.session_id;
+        } else {
+          const { data: latestSession } = await db
+            .from("chat_sessions")
+            .select("id")
+            .eq("status", "open")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestSession) {
+            targetSessionId = latestSession.id;
+          }
         }
       }
     }
 
     if (!targetSessionId) {
       // Tin nhắn không thuộc phiên chat nào — bỏ qua an toàn
-      return NextResponse.json({ ok: true });
+      console.warn("[telegram-webhook] Không tìm thấy session phù hợp cho tin nhắn:", replyText);
+      return NextResponse.json({ ok: true, warning: "No matching session found" });
     }
 
     // 3. Lưu phản hồi của admin vào Supabase kèm telegram_message_id
@@ -158,8 +187,10 @@ export async function POST(req: NextRequest) {
 
     if (insertErr || !newMsg) {
       console.error("[telegram-webhook] Insert message error:", insertErr);
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, error: insertErr?.message });
     }
+
+    console.log(`[telegram-webhook] ✅ Đã lưu phản hồi vào session ${targetSessionId}: "${replyText}"`);
 
     // 4. Broadcast tới widget của khách (qua Realtime Broadcast)
     // Lưu ý: bảng chat_messages có kích hoạt Realtime publication nên
@@ -170,7 +201,7 @@ export async function POST(req: NextRequest) {
       created_at: newMsg.created_at,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, sessionId: targetSessionId, messageId: newMsg.id });
   } catch (err) {
     console.error("[telegram-webhook]", err);
     // Luôn trả 200 để Telegram không retry liên tục

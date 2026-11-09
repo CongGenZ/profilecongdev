@@ -1,17 +1,19 @@
 import fs from "fs";
 import path from "path";
 
-// Đọc .env.local
-const envPath = path.resolve(process.cwd(), ".env.local");
+// Đọc .env và .env.local
 let env = {};
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const [key, ...rest] = trimmed.split("=");
-    if (key && rest.length > 0) {
-      env[key.trim()] = rest.join("=").trim().replace(/^["']|["']$/g, "");
+for (const file of [".env", ".env.local"]) {
+  const envPath = path.resolve(process.cwd(), file);
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const [key, ...rest] = trimmed.split("=");
+      if (key && rest.length > 0) {
+        env[key.trim()] = rest.join("=").trim().replace(/^["']|["']$/g, "");
+      }
     }
   }
 }

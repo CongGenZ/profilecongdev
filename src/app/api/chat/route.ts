@@ -88,6 +88,26 @@ export async function POST(req: NextRequest) {
     let sid = sessionId;
     let visitorName: string | null = null;
 
+    if (sid) {
+      const { data: existing } = await db
+        .from("chat_sessions")
+        .select("id, visitor_name")
+        .eq("id", sid)
+        .maybeSingle();
+
+      if (existing) {
+        visitorName = existing.visitor_name ?? null;
+        // Cập nhật updated_at để đánh dấu phiên hoạt động mới nhất
+        await db
+          .from("chat_sessions")
+          .update({ updated_at: new Date().toISOString(), status: "open" })
+          .eq("id", sid);
+      } else {
+        // Nếu sessionId cũ trong localStorage không còn tồn tại trong DB → tạo mới
+        sid = undefined;
+      }
+    }
+
     if (!sid) {
       const { data: session, error } = await db
         .from("chat_sessions")
@@ -96,13 +116,6 @@ export async function POST(req: NextRequest) {
         .single();
       if (error || !session) throw error ?? new Error("Cannot create session");
       sid = session.id;
-    } else {
-      const { data: existing } = await db
-        .from("chat_sessions")
-        .select("visitor_name")
-        .eq("id", sid)
-        .single();
-      visitorName = existing?.visitor_name ?? null;
     }
 
     // Lần đầu gửi tin → lưu tên nếu có thể trích từ tin nhắn
@@ -131,7 +144,7 @@ export async function POST(req: NextRequest) {
     const label = safeVisitorName ? `👤 <b>${safeVisitorName}</b>` : "👤 Khách (chưa rõ tên)";
     const telegramText =
       `💬 <b>Tin nhắn mới</b> — ${label}\n` +
-      `<code>#sid_${sid.slice(0, 8)}</code>\n\n` +
+      `<code>#sid_${sid}</code>\n\n` +
       `${safeMessage}\n\n` +
       `<i>↩️ Reply tin nhắn này để trả lời.</i>`;
 

@@ -153,6 +153,37 @@ export function ChatWidget() {
     };
   }, [sessionId, handleIncomingMessage]);
 
+  // ── Polling dự phòng (đảm bảo nhận tin nhắn ngay cả khi Realtime WebSocket bị ngắt) ──
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const syncMessages = async () => {
+      try {
+        const res = await fetch(`/api/chat?sessionId=${sessionId}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { messages?: Message[] };
+        if (!data.messages || data.messages.length === 0) return;
+
+        for (const msg of data.messages) {
+          if (msg.role === "admin" || msg.role === "bot") {
+            handleIncomingMessage(msg);
+          }
+        }
+      } catch {
+        // Bỏ qua lỗi mạng tạm thời khi polling
+      }
+    };
+
+    // Khi mở khung chat thì kiểm tra ngay 1 lần, sau đó lặp lại mỗi 3 giây (hoặc 8 giây khi đóng)
+    if (open) {
+      syncMessages();
+    }
+    const interval = setInterval(syncMessages, open ? 3000 : 8000);
+    return () => clearInterval(interval);
+  }, [sessionId, open, handleIncomingMessage]);
+
   // ── Bắt đầu phiên chat mới ──────────────────────────────────────────────
   const resetSession = () => {
     try {
