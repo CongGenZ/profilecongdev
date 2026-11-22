@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase";
+import {
+  registerTelegramMessageSession,
+  syncTelegramUpdates,
+} from "@/lib/telegram";
+
+export const dynamic = "force-dynamic";
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
@@ -152,10 +158,17 @@ export async function POST(req: NextRequest) {
 
     // 4. Lưu telegram_message_id để map reply về đúng session
     if (telegramMsgId) {
-      await db
+      registerTelegramMessageSession(telegramMsgId, sid);
+      const { error: updateErr } = await db
         .from("chat_messages")
         .update({ telegram_message_id: telegramMsgId })
         .eq("id", savedMsg.id);
+      if (updateErr) {
+        console.warn(
+          "[chat/route] Không thể lưu telegram_message_id vào DB (đã lưu dự phòng trên RAM):",
+          updateErr.message
+        );
+      }
     }
 
     return NextResponse.json({ reply: null, sessionId: sid } satisfies ChatResponse);
@@ -175,6 +188,19 @@ export async function GET(req: NextRequest) {
     if (!sessionId) {
       return NextResponse.json({ messages: [] });
     }
+
+    // Tự động kéo tin nhắn mới từ Telegram về Supabase (nếu chạy local/Docker hoặc khi Webhook chưa kích hoạt)
+    const host = req.headers.get("host") || "";
+    const isLocalRequest =
+      host.includes("localhost") ||
+      host.includes("127.0.0.1") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("10.");
+
+    await syncTelegramUpdates({
+      isLocalRequest,
+      preferredSessionId: sessionId,
+    });
 
     const db = createServerClient();
     const { data, error } = await db

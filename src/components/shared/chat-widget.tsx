@@ -40,6 +40,11 @@ export function ChatWidget() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const openRef = useRef(open);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   // Khôi phục sessionId và tải lịch sử chat cũ khi load trang
   useEffect(() => {
@@ -51,7 +56,7 @@ export function ChatWidget() {
         });
 
         // Fetch lịch sử tin nhắn
-        fetch(`/api/chat?sessionId=${stored}`)
+        fetch(`/api/chat?sessionId=${stored}`, { cache: "no-store" })
           .then(res => res.json())
           .then((data: { messages?: Message[] }) => {
             if (data.messages && data.messages.length > 0) {
@@ -80,8 +85,12 @@ export function ChatWidget() {
   const handleIncomingMessage = useCallback(
     (newMsg: { id: string; role?: "user" | "bot" | "admin"; text: string; created_at?: string }) => {
       setMessages(prev => {
-        // Tránh trùng lặp tin nhắn nếu cả Postgres Changes và Broadcast cùng bắn
+        // Tránh trùng lặp tin nhắn nếu cả Postgres Changes, Broadcast và Polling cùng trả về
         if (prev.some(m => m.id === newMsg.id)) return prev;
+
+        if (!openRef.current) {
+          queueMicrotask(() => setHasUnread(true));
+        }
 
         return [
           ...prev,
@@ -99,10 +108,8 @@ export function ChatWidget() {
           },
         ];
       });
-
-      setHasUnread(prev => (open ? prev : true));
     },
-    [open]
+    []
   );
 
   // ── Supabase Realtime subscription ──────────────────────────────────────
@@ -112,57 +119,68 @@ export function ChatWidget() {
   useEffect(() => {
     if (!sessionId) return;
 
-    const client = getSupabaseClient();
+    try {
+      const client = getSupabaseClient();
 
-    // 1. Channel Postgres Changes
-    const dbChannel = client
-      .channel(`chat-db:${sessionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        payload => {
-          const row = payload.new as { id: string; role: "user" | "bot" | "admin"; text: string; created_at: string };
-          // Chỉ thêm tin nhắn từ admin hoặc bot (tin của user đã thêm optimistic ở client)
-          if (row.role === "admin" || row.role === "bot") {
-            handleIncomingMessage(row);
+      // 1. Channel Postgres Changes
+      const dbChannel = client
+        .channel(`chat-db:${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "chat_messages",
+            filter: `session_id=eq.${sessionId}`,
+          },
+          payload => {
+            const row = payload.new as {
+              id: string;
+              role: "user" | "bot" | "admin";
+              text: string;
+              created_at: string;
+            };
+            // Chỉ thêm tin nhắn từ admin hoặc bot (tin của user đã thêm optimistic ở client)
+            if (row.role === "admin" || row.role === "bot") {
+              handleIncomingMessage(row);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    // 2. Channel Broadcast (Dự phòng)
-    const broadcastChannel = client
-      .channel(`chat:${sessionId}`)
-      .on(
-        "broadcast",
-        { event: "new_message" },
-        ({ payload }: { payload: { id: string; text: string; created_at: string } }) => {
-          handleIncomingMessage({ ...payload, role: "admin" });
-        }
-      )
-      .subscribe();
+      // 2. Channel Broadcast (Dự phòng)
+      const broadcastChannel = client
+        .channel(`chat:${sessionId}`)
+        .on(
+          "broadcast",
+          { event: "new_message" },
+          ({ payload }: { payload: { id: string; text: string; created_at: string } }) => {
+            handleIncomingMessage({ ...payload, role: "admin" });
+          }
+        )
+        .subscribe();
 
-    return () => {
-      client.removeChannel(dbChannel);
-      client.removeChannel(broadcastChannel);
-    };
+      return () => {
+        client.removeChannel(dbChannel);
+        client.removeChannel(broadcastChannel);
+      };
+    } catch (err) {
+      console.warn("[chat-widget] Không thể khởi tạo Realtime client, dùng cơ chế đồng bộ trực tiếp:", err);
+    }
   }, [sessionId, handleIncomingMessage]);
 
-  // ── Polling dự phòng (đảm bảo nhận tin nhắn ngay cả khi Realtime WebSocket bị ngắt) ──
+  // ── Đồng bộ trực tiếp với Server & Telegram (đảm bảo luôn nhận được tin nhắn) ──
   useEffect(() => {
     if (!sessionId) return;
 
+    let cancelled = false;
+
     const syncMessages = async () => {
       try {
-        const res = await fetch(`/api/chat?sessionId=${sessionId}`, {
+        const res = await fetch(`/api/chat?sessionId=${sessionId}&_t=${Date.now()}`, {
           cache: "no-store",
         });
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         const data = (await res.json()) as { messages?: Message[] };
         if (!data.messages || data.messages.length === 0) return;
 
@@ -176,12 +194,17 @@ export function ChatWidget() {
       }
     };
 
-    // Khi mở khung chat thì kiểm tra ngay 1 lần, sau đó lặp lại mỗi 3 giây (hoặc 8 giây khi đóng)
-    if (open) {
-      syncMessages();
-    }
-    const interval = setInterval(syncMessages, open ? 3000 : 8000);
-    return () => clearInterval(interval);
+    // Kiểm tra ngay lập tức và lặp lại định kỳ
+    syncMessages();
+    const interval = setInterval(syncMessages, open ? 2500 : 6000);
+    const onFocus = () => syncMessages();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [sessionId, open, handleIncomingMessage]);
 
   // ── Bắt đầu phiên chat mới ──────────────────────────────────────────────

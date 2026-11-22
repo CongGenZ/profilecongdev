@@ -66,19 +66,31 @@ alter table public.chat_sessions      enable row level security;
 alter table public.chat_messages      enable row level security;
 alter table public.contact_submissions enable row level security;
 
--- chat_sessions: ai cũng có thể tạo session mới và đọc session của mình
+-- chat_sessions: ai cũng có thể tạo session mới, đọc và cập nhật session
+drop policy if exists "insert own session" on public.chat_sessions;
 create policy "insert own session" on public.chat_sessions
   for insert with check (true);
 
+drop policy if exists "read own session" on public.chat_sessions;
 create policy "read own session" on public.chat_sessions
   for select using (true);
 
--- chat_messages: insert tự do, select theo session
+drop policy if exists "update own session" on public.chat_sessions;
+create policy "update own session" on public.chat_sessions
+  for update using (true) with check (true);
+
+-- chat_messages: insert tự do, select và update theo session
+drop policy if exists "insert message" on public.chat_messages;
 create policy "insert message" on public.chat_messages
   for insert with check (true);
 
+drop policy if exists "read messages" on public.chat_messages;
 create policy "read messages" on public.chat_messages
   for select using (true);
+
+drop policy if exists "update messages" on public.chat_messages;
+create policy "update messages" on public.chat_messages
+  for update using (true) with check (true);
 
 -- contact_submissions: chỉ insert từ client, không read (admin dùng service key)
 create policy "insert contact" on public.contact_submissions
