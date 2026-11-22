@@ -341,6 +341,7 @@ async function resolveSessionCandidate(
 export async function syncTelegramUpdates(options?: {
   isLocalRequest?: boolean;
   preferredSessionId?: string;
+  currentOrigin?: string;
 }): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
@@ -362,7 +363,7 @@ export async function syncTelegramUpdates(options?: {
     return;
   }
 
-  // Giới hạn tần suất gọi Telegram API tối đa 1 lần mỗi 1.5 giây
+  // Giới hạn tần suất gọi Telegram API tối đa 1 lần mỗi 1.5 giây trên mỗi instance
   if (
     globalForTelegram.__telegramLastSyncAt &&
     now - globalForTelegram.__telegramLastSyncAt < 1500
@@ -406,14 +407,24 @@ export async function syncTelegramUpdates(options?: {
         const webhookUrl = info.result?.url || "";
         const hasWebhookError = Boolean(info.result?.last_error_message);
         const hasPendingUpdates = (info.result?.pending_update_count ?? 0) > 0;
+        const isDifferentOrigin =
+          Boolean(options?.currentOrigin) &&
+          Boolean(webhookUrl) &&
+          !webhookUrl.startsWith(options!.currentOrigin!);
 
-        // Nếu đang chạy ở localhost HOẶC webhook đang bị lỗi / đang kẹt tin nhắn chưa xử lý trên Telegram
-        // -> Tự động gỡ webhook để kéo tin trực tiếp qua getUpdates
-        if (options?.isLocalRequest || hasWebhookError || hasPendingUpdates || !webhookUrl) {
+        // Nếu chạy ở localhost, hoặc webhook trỏ sai domain cũ, hoặc webhook bị lỗi 401/403/500, hoặc có tin nhắn đang kẹt
+        // -> Tự động gỡ webhook bị kẹt để kéo tin trực tiếp qua getUpdates
+        if (
+          options?.isLocalRequest ||
+          hasWebhookError ||
+          hasPendingUpdates ||
+          isDifferentOrigin ||
+          !webhookUrl
+        ) {
           console.warn(
-            `[telegram/sync] Phát hiện Webhook không khả dụng (${
+            `[telegram/sync] Giải phóng Webhook không khớp/lỗi (${
               info.result?.last_error_message || webhookUrl || "local mode"
-            }). Đang chuyển sang đồng bộ trực tiếp getUpdates...`
+            }) để đồng bộ trực tiếp qua getUpdates...`
           );
           await fetch(`${baseUrl}/deleteWebhook?drop_pending_updates=false`, {
             cache: "no-store",
@@ -425,7 +436,7 @@ export async function syncTelegramUpdates(options?: {
           });
           data = await res.json();
         } else {
-          // Webhook trên domain thực tế đang hoạt động bình thường, tạm nghỉ polling 30s
+          // Webhook trên đúng domain hiện tại đang hoạt động tốt, tạm nghỉ polling 30s
           globalForTelegram.__telegramWebhookActiveUntil = Date.now() + 30_000;
           return;
         }
@@ -445,8 +456,8 @@ export async function syncTelegramUpdates(options?: {
 
       if (nextOffset > offset) {
         globalForTelegram.__telegramOffset = nextOffset;
-        // Xác nhận offset với Telegram ngay lập tức để Telegram xóa các update đã xử lý khỏi hàng đợi
-        fetch(`${baseUrl}/getUpdates?offset=${nextOffset}&limit=1&timeout=0`, {
+        // Bắt buộc await trên Vercel Serverless để request xác nhận offset không bị đóng băng giữa chừng
+        await fetch(`${baseUrl}/getUpdates?offset=${nextOffset}&limit=1&timeout=0`, {
           cache: "no-store",
         }).catch(() => {});
       }

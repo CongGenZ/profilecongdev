@@ -200,6 +200,7 @@ export async function GET(req: NextRequest) {
     await syncTelegramUpdates({
       isLocalRequest,
       preferredSessionId: sessionId,
+      currentOrigin: req.nextUrl.origin,
     });
 
     const db = createServerClient();
