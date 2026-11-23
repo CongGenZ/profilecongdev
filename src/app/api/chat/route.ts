@@ -6,24 +6,13 @@ import {
   syncTelegramUpdates,
 } from "@/lib/telegram";
 import { profile } from "@/data/profile";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 // ─── Rate Limiter (Chống spam API & Telegram) ──────────────────────────────
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string, limit = 15, windowMs = 60_000): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= limit) return false;
-  entry.count += 1;
-  return true;
-}
+const checkRateLimit = createRateLimiter(15, 60_000);
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
@@ -182,10 +171,7 @@ async function sendTelegramMessage(text: string): Promise<number | null> {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "anonymous";
+    const ip = getClientIp(req.headers);
 
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
