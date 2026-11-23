@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Layers, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
 import { GithubIcon } from "@/components/shared/icons";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { ScrollToTop } from "@/components/shared/scroll-to-top";
+import { ChatWidget } from "@/components/shared/chat-widget";
+import { ImageLightbox } from "@/components/shared/image-lightbox";
+import { ProjectCard } from "@/components/shared/project-card";
 import { projects, getProjectBySlug } from "@/data/projects";
 
 interface Props {
@@ -21,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = getProjectBySlug(slug);
   if (!project) return {};
   return {
-    title: project.title,
+    title: `${project.title} — Case Study`,
     description: project.shortDescription,
   };
 }
@@ -32,11 +35,15 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   if (!project) notFound();
 
+  const relatedProjects = projects
+    .filter((p) => p.slug !== project.slug)
+    .slice(0, 2);
+
   return (
     <>
       <Header />
       <main
-        className="pt-24 pb-20"
+        className="pt-28 pb-20"
         style={{ backgroundColor: "var(--bg-base)" }}
       >
         <div className="container-width">
@@ -47,27 +54,43 @@ export default async function ProjectDetailPage({ params }: Props) {
             style={{ color: "var(--text-secondary)" }}
           >
             <ArrowLeft size={14} />
-            Quay lại
+            Quay lại danh sách dự án
           </Link>
 
           {/* Header */}
-          <div className="mb-10 pb-8 border-b" style={{ borderColor: "var(--border-color)" }}>
+          <div
+            className="mb-8 pb-8 border-b"
+            style={{ borderColor: "var(--border-color)" }}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p
-                  className="text-xs font-medium tracking-widest uppercase mb-2"
-                  style={{ color: "var(--accent-color)" }}
-                >
-                  {project.year} · {project.role}
-                </p>
+              <div className="max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full border"
+                    style={{
+                      backgroundColor: "var(--label-bg)",
+                      color: "var(--label-color)",
+                      borderColor: "rgba(180, 83, 9, 0.2)",
+                    }}
+                  >
+                    {project.category}
+                  </span>
+                  <span
+                    className="text-xs font-medium tracking-wider uppercase"
+                    style={{ color: "var(--accent-color)" }}
+                  >
+                    {project.year} · {project.role}
+                  </span>
+                </div>
+
                 <h1
-                  className="text-2xl md:text-3xl font-semibold tracking-tight"
+                  className="text-2xl md:text-4xl font-semibold tracking-tight"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {project.title}
                 </h1>
                 <p
-                  className="mt-2 text-base"
+                  className="mt-3 text-base md:text-lg leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   {project.shortDescription}
@@ -80,13 +103,14 @@ export default async function ProjectDetailPage({ params }: Props) {
                     href={project.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-md transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium border px-4 py-2 rounded-xl transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]"
                     style={{
                       borderColor: "var(--border-color)",
-                      color: "var(--text-secondary)",
+                      color: "var(--text-primary)",
+                      backgroundColor: "var(--bg-surface)",
                     }}
                   >
-                    <GithubIcon size={14} />
+                    <GithubIcon size={15} />
                     GitHub
                   </a>
                 )}
@@ -95,169 +119,240 @@ export default async function ProjectDetailPage({ params }: Props) {
                     href={project.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-md transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-opacity hover:opacity-90"
                     style={{
-                      borderColor: "var(--border-color)",
-                      color: "var(--text-secondary)",
+                      backgroundColor: "var(--accent-color)",
+                      color: "#ffffff",
                     }}
                   >
-                    <ExternalLink size={14} />
-                    Live Demo
+                    <ExternalLink size={15} />
+                    Xem Live Demo
                   </a>
                 )}
               </div>
             </div>
+
+            {/* Key Impact Metrics Bar */}
+            {project.metrics && project.metrics.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+                {project.metrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="p-4 rounded-xl border"
+                    style={{
+                      backgroundColor: "var(--bg-surface)",
+                      borderColor: "var(--border-color)",
+                    }}
+                  >
+                    <p
+                      className="text-lg md:text-xl font-bold flex items-center gap-1.5"
+                      style={{ color: "var(--accent-color)" }}
+                    >
+                      <Sparkles size={15} />
+                      {metric.value}
+                    </p>
+                    <p
+                      className="text-xs mt-1"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {metric.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Main screenshot */}
-          {project.screenshots[0] && (
-            <div
-              className="relative aspect-[16/9] w-full rounded-lg overflow-hidden border mb-12"
-              style={{
-                borderColor: "var(--border-color)",
-                backgroundColor: "var(--muted)",
-              }}
-            >
-              <Image
-                src={project.screenshots[0]}
-                alt={project.title}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1120px) 100vw, 1120px"
-                priority
-              />
-            </div>
-          )}
+          {/* Interactive Lightbox Gallery */}
+          <ImageLightbox images={project.screenshots} title={project.title} />
 
           {/* Content grid */}
           <div className="grid md:grid-cols-[2fr_1fr] gap-10 md:gap-16">
             {/* Left — Detail */}
-            <div className="space-y-8">
+            <div className="space-y-10">
               <section>
                 <h2
-                  className="text-base font-semibold mb-3"
+                  className="text-lg font-semibold mb-3"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Tổng quan
+                  Tổng quan dự án
                 </h2>
                 <p
-                  className="text-sm leading-relaxed"
+                  className="text-sm md:text-base leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   {project.description}
                 </p>
               </section>
 
-              <section>
-                <h2
-                  className="text-base font-semibold mb-3"
-                  style={{ color: "var(--text-primary)" }}
+              <div className="grid sm:grid-cols-2 gap-5">
+                <section
+                  className="p-5 rounded-xl border"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    borderColor: "var(--border-color)",
+                  }}
                 >
-                  Bài toán
-                </h2>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {project.problem}
-                </p>
-              </section>
-
-              <section>
-                <h2
-                  className="text-base font-semibold mb-3"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Giải pháp
-                </h2>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {project.solution}
-                </p>
-              </section>
-
-              <section>
-                <h2
-                  className="text-base font-semibold mb-3"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Tính năng chính
-                </h2>
-                <ul className="space-y-2">
-                  {project.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-center gap-2 text-sm"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: "var(--accent-color)" }}
-                      />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* Extra screenshots */}
-              {project.screenshots.length > 1 && (
-                <section>
                   <h2
-                    className="text-base font-semibold mb-4"
+                    className="text-base font-semibold mb-2.5"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Screenshots
+                    🎯 Bài toán thực tế
                   </h2>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {project.screenshots.slice(1).map((src, i) => (
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {project.problem}
+                  </p>
+                </section>
+
+                <section
+                  className="p-5 rounded-xl border"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    borderColor: "var(--border-color)",
+                  }}
+                >
+                  <h2
+                    className="text-base font-semibold mb-2.5"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    💡 Giải pháp kỹ thuật
+                  </h2>
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {project.solution}
+                  </p>
+                </section>
+              </div>
+
+              {/* System Architecture Block */}
+              {project.architecture && (
+                <section
+                  className="p-6 rounded-2xl border"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    borderColor: "var(--border-color)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Layers size={18} style={{ color: "var(--accent-color)" }} />
+                    <h2
+                      className="text-base font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Kiến trúc hệ thống (System Architecture)
+                    </h2>
+                  </div>
+                  <p
+                    className="text-sm leading-relaxed mb-5"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {project.architecture.summary}
+                  </p>
+
+                  <div className="space-y-3">
+                    {project.architecture.layers.map((layer, index) => (
                       <div
-                        key={i}
-                        className="relative aspect-[16/10] rounded-lg overflow-hidden border"
+                        key={layer.name}
+                        className="p-4 rounded-xl border"
                         style={{
+                          backgroundColor: "var(--bg-base)",
                           borderColor: "var(--border-color)",
-                          backgroundColor: "var(--muted)",
                         }}
                       >
-                        <Image
-                          src={src}
-                          alt={`${project.title} screenshot ${i + 2}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span
+                            className="w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center text-white"
+                            style={{ backgroundColor: "var(--accent-color)" }}
+                          >
+                            {index + 1}
+                          </span>
+                          <p
+                            className="text-xs font-semibold uppercase tracking-wider"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {layer.name}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {layer.items.map((item) => (
+                            <span
+                              key={item}
+                              className="text-xs px-2.5 py-1 rounded-md border font-medium"
+                              style={{
+                                backgroundColor: "var(--bg-surface)",
+                                borderColor: "var(--border-color)",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </section>
               )}
+
+              <section>
+                <h2
+                  className="text-lg font-semibold mb-4"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Tính năng chính đã triển khai
+                </h2>
+                <ul className="grid sm:grid-cols-2 gap-3">
+                  {project.features.map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-start gap-2.5 text-sm p-3 rounded-xl border"
+                      style={{
+                        color: "var(--text-secondary)",
+                        backgroundColor: "var(--bg-surface)",
+                        borderColor: "var(--border-color)",
+                      }}
+                    >
+                      <CheckCircle2
+                        size={16}
+                        className="shrink-0 mt-0.5"
+                        style={{ color: "var(--accent-color)" }}
+                      />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             </div>
 
-            {/* Right — Meta */}
+            {/* Right — Meta & CTA */}
             <aside className="space-y-6">
               <div
-                className="border rounded-lg p-5"
+                className="border rounded-xl p-5"
                 style={{
                   borderColor: "var(--border-color)",
                   backgroundColor: "var(--bg-surface)",
                 }}
               >
                 <p
-                  className="text-xs font-medium tracking-widest uppercase mb-3"
+                  className="text-xs font-semibold tracking-widest uppercase mb-3"
                   style={{ color: "var(--accent-color)" }}
                 >
-                  Công nghệ
+                  Tech Stack sử dụng
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {project.technologies.map((tech) => (
                     <span
                       key={tech}
-                      className="text-xs px-2 py-1 rounded border"
+                      className="text-xs px-2.5 py-1 rounded-md border font-medium"
                       style={{
                         borderColor: "var(--border-color)",
-                        color: "var(--text-secondary)",
+                        color: "var(--text-primary)",
+                        backgroundColor: "var(--bg-base)",
                       }}
                     >
                       {tech}
@@ -267,7 +362,7 @@ export default async function ProjectDetailPage({ params }: Props) {
               </div>
 
               <div
-                className="border rounded-lg p-5 space-y-3"
+                className="border rounded-xl p-5 space-y-4"
                 style={{
                   borderColor: "var(--border-color)",
                   backgroundColor: "var(--bg-surface)",
@@ -275,24 +370,24 @@ export default async function ProjectDetailPage({ params }: Props) {
               >
                 <div>
                   <p
-                    className="text-xs font-medium tracking-widest uppercase mb-1"
+                    className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
-                    Vai trò
+                    Vai trò đảm nhiệm
                   </p>
                   <p
-                    className="text-sm"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="text-sm font-medium"
+                    style={{ color: "var(--text-primary)" }}
                   >
                     {project.role}
                   </p>
                 </div>
                 <div>
                   <p
-                    className="text-xs font-medium tracking-widest uppercase mb-1"
+                    className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
-                    Năm
+                    Năm thực hiện
                   </p>
                   <p
                     className="text-sm"
@@ -303,7 +398,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 </div>
                 <div>
                   <p
-                    className="text-xs font-medium tracking-widest uppercase mb-1"
+                    className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
                     Trạng thái
@@ -312,15 +407,78 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-sm"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    {project.status === "completed" ? "Hoàn thành" : "Đang phát triển"}
+                    {project.status === "completed"
+                      ? "Đã hoàn thành & bàn giao"
+                      : "Đang vận hành & phát triển"}
                   </p>
                 </div>
               </div>
+
+              {/* Project CTA Box */}
+              <div
+                className="border rounded-xl p-5"
+                style={{
+                  borderColor: "var(--accent-color)",
+                  backgroundColor: "var(--bg-surface)",
+                }}
+              >
+                <p
+                  className="text-sm font-semibold mb-1.5"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Bạn cần xây dựng hệ thống tương tự?
+                </p>
+                <p
+                  className="text-xs leading-relaxed mb-4"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Mình có thể tư vấn kiến trúc, ước tính chi phí và lộ trình phát triển phù hợp với ngân sách của bạn.
+                </p>
+                <Link
+                  href="/#contact"
+                  className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: "var(--accent-color)" }}
+                >
+                  Nhận tư vấn & báo giá
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
             </aside>
           </div>
+
+          {/* Related Projects */}
+          {relatedProjects.length > 0 && (
+            <div
+              className="mt-16 pt-12 border-t"
+              style={{ borderColor: "var(--border-color)" }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Các dự án tiêu biểu khác
+                </h2>
+                <Link
+                  href="/projects"
+                  className="text-sm font-medium transition-colors hover:text-[var(--accent-color)]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Xem tất cả →
+                </Link>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-6">
+                {relatedProjects.map((p) => (
+                  <ProjectCard key={p.slug} project={p} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />
+      <ScrollToTop />
+      <ChatWidget />
     </>
   );
 }

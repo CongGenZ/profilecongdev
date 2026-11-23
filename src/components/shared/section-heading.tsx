@@ -20,8 +20,8 @@ export function SectionHeading({
           className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.13em] uppercase mb-4 px-3 py-1.5 rounded-full border"
           style={{
             color: "var(--label-color)",
-            background: "linear-gradient(135deg, #FEF9EE 0%, #FEF3C7 100%)",
-            borderColor: "rgba(180, 83, 9, 0.18)",
+            backgroundColor: "var(--label-bg)",
+            borderColor: "rgba(180, 83, 9, 0.22)",
             boxShadow: "0 1px 3px rgba(180, 83, 9, 0.08)",
           }}
         >

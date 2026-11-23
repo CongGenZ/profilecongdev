@@ -11,11 +11,11 @@ export const techStack: TechCategory[] = [
   },
   {
     category: "Database",
-    items: ["PostgreSQL", "MySQL", "Prisma ORM", "Redis"],
+    items: ["PostgreSQL", "Supabase", "MySQL", "Prisma ORM", "Redis"],
   },
   {
     category: "Tools & Platform",
-    items: ["Git", "Docker", "Figma", "Vercel", "Linux"],
+    items: ["Git", "Docker", "Vercel", "Telegram Bot API", "Figma", "Linux"],
   },
 ];
 

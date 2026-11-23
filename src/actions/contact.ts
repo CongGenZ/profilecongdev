@@ -9,6 +9,8 @@ export interface ContactResult {
   message: string;
 }
 
+const contactCooldownMap = new Map<string, number>();
+
 export async function submitContact(
   data: unknown
 ): Promise<ContactResult> {
@@ -22,6 +24,17 @@ export async function submitContact(
   }
 
   const { name, email, projectType, message } = parsed.data;
+
+  // Chống gửi liên tục từ cùng 1 email trong vòng 45 giây
+  const now = Date.now();
+  const lastSubmitted = contactCooldownMap.get(email.toLowerCase());
+  if (lastSubmitted && now - lastSubmitted < 45_000) {
+    return {
+      success: false,
+      message: "Yêu cầu của bạn vừa được gửi. Vui lòng đợi ít phút trước khi gửi lại nhé!",
+    };
+  }
+  contactCooldownMap.set(email.toLowerCase(), now);
 
   let emailSent = false;
   let dbSaved = false;

@@ -47,12 +47,37 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: profile.name,
+    alternateName: profile.displayName,
+    jobTitle: profile.title,
+    description: profile.tagline,
+    email: profile.email,
+    telephone: profile.phone,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: profile.address,
+      addressLocality: "Hà Nội",
+      addressCountry: "VN",
+    },
+    sameAs: [profile.github, profile.linkedin],
+  };
+
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

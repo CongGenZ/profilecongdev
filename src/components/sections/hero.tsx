@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, Circle } from "lucide-react";
+import { ArrowRight, Circle, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SocialLinks } from "@/components/shared/social-links";
 import { profile } from "@/data/profile";
@@ -74,7 +74,7 @@ export function Hero() {
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 mb-8">
                 <Button
-                  className="h-10 px-5 text-sm font-medium"
+                  className="h-10 px-5 text-sm font-medium cursor-pointer"
                   style={{
                     backgroundColor: "var(--accent-color)",
                     color: "#fff",
@@ -86,10 +86,23 @@ export function Hero() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-10 px-5 text-sm font-medium border"
+                  className="h-10 px-4 text-sm font-medium border cursor-pointer gap-1.5"
                   style={{
                     borderColor: "var(--border-color)",
                     color: "var(--text-primary)",
+                    backgroundColor: "var(--bg-surface)",
+                  }}
+                  onClick={() => scrollTo("estimator")}
+                >
+                  <Calculator size={15} style={{ color: "var(--accent-color)" }} />
+                  Ước tính chi phí
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-10 px-4 text-sm font-medium border cursor-pointer"
+                  style={{
+                    borderColor: "var(--border-color)",
+                    color: "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onClick={() => scrollTo("projects")}

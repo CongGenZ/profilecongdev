@@ -67,6 +67,36 @@
   --radius: 0.5rem;
 }
 
+.dark {
+  --bg-base: #0B0F17;
+  --bg-surface: #131B2E;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --border-color: #1E293B;
+  --accent-color: #4E86BC;
+  --accent-hover: #60A5FA;
+  --label-color: #FBBF24;
+  --label-bg: rgba(245, 158, 11, 0.14);
+
+  --background: #0B0F17;
+  --foreground: #F1F5F9;
+  --card: #131B2E;
+  --card-foreground: #F1F5F9;
+  --popover: #131B2E;
+  --popover-foreground: #F1F5F9;
+  --primary: #4E86BC;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F1F5F9;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #4E86BC;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -148,6 +178,15 @@
       #FAFAF8 0%,
       #F5F0E8 40%,
       #EEF4FA 100%
+    );
+  }
+
+  .dark .hero-gradient {
+    background: linear-gradient(
+      135deg,
+      #0B0F17 0%,
+      #111827 45%,
+      #0F1E36 100%
     );
   }
 }

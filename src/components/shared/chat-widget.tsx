@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Loader2, RotateCcw } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { getSupabaseClient } from "@/lib/supabase";
 
@@ -19,12 +19,23 @@ function getTime() {
   return new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 
+function makeTempId(prefix: string) {
+  return `${prefix}-${new Date().getTime()}`;
+}
+
 const WELCOME: Message = {
   id: "welcome",
   role: "bot",
-  text: "Xin chào! 👋 Mình là Cong Dev. Cho mình biết tên bạn và bạn đang cần hỗ trợ gì nhé?",
+  text: "Xin chào! 👋 Mình là trợ lý trực tuyến của Cong Dev. Bạn có thể chọn nhanh chủ đề bên dưới hoặc nhắn trực tiếp, tin nhắn sẽ được chuyển thẳng tới Telegram của Công!",
   time: getTime(),
 };
+
+const QUICK_REPLIES = [
+  { label: "💰 Báo giá làm web", text: "Cho mình tham khảo báo giá và thời gian làm website nhé!" },
+  { label: "🛠️ Công nghệ & Kinh nghiệm", text: "Công đang sử dụng những công nghệ và tech stack nào?" },
+  { label: "🚀 Dự án tiêu biểu", text: "Giới thiệu cho mình một số dự án tiêu biểu Công đã làm nhé." },
+  { label: "📞 Thông tin Zalo / Liên hệ", text: "Cho mình xin số Zalo và thông tin liên hệ trực tiếp của Công." },
+];
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -46,6 +57,16 @@ export function ChatWidget() {
     openRef.current = open;
   }, [open]);
 
+  // Hỗ trợ mở khung chat từ Command Palette (Ctrl+K) hoặc nút khác trên trang
+  useEffect(() => {
+    const onOpenChat = () => {
+      setOpen(true);
+      setHasUnread(false);
+    };
+    window.addEventListener("open-chat-widget", onOpenChat);
+    return () => window.removeEventListener("open-chat-widget", onOpenChat);
+  }, []);
+
   // Khôi phục sessionId và tải lịch sử chat cũ khi load trang
   useEffect(() => {
     try {
@@ -55,19 +76,20 @@ export function ChatWidget() {
           setSessionId(stored);
         });
 
-        // Fetch lịch sử tin nhắn
         fetch(`/api/chat?sessionId=${stored}`, { cache: "no-store" })
-          .then(res => res.json())
+          .then((res) => res.json())
           .then((data: { messages?: Message[] }) => {
             if (data.messages && data.messages.length > 0) {
               setMessages([WELCOME, ...data.messages]);
             }
           })
-          .catch(err => {
+          .catch((err) => {
             console.error("[chat-widget] Lỗi tải lịch sử chat:", err);
           });
       }
-    } catch { /* private mode hoặc storage bị block */ }
+    } catch {
+      /* private mode hoặc storage bị block */
+    }
   }, []);
 
   // Scroll to bottom on new messages
@@ -84,9 +106,8 @@ export function ChatWidget() {
   // ── Xử lý tin nhắn đến (Deduplication) ───────────────────────────────────
   const handleIncomingMessage = useCallback(
     (newMsg: { id: string; role?: "user" | "bot" | "admin"; text: string; created_at?: string }) => {
-      setMessages(prev => {
-        // Tránh trùng lặp tin nhắn nếu cả Postgres Changes, Broadcast và Polling cùng trả về
-        if (prev.some(m => m.id === newMsg.id)) return prev;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) return prev;
 
         if (!openRef.current) {
           queueMicrotask(() => setHasUnread(true));
@@ -113,16 +134,12 @@ export function ChatWidget() {
   );
 
   // ── Supabase Realtime subscription ──────────────────────────────────────
-  // Kết hợp cả Postgres Changes và Broadcast:
-  // - Postgres Changes: Tự động bắt sự kiện INSERT từ database chat_messages.
-  // - Broadcast: Nhận trực tiếp sự kiện server push qua topic.
   useEffect(() => {
     if (!sessionId) return;
 
     try {
       const client = getSupabaseClient();
 
-      // 1. Channel Postgres Changes
       const dbChannel = client
         .channel(`chat-db:${sessionId}`)
         .on(
@@ -133,14 +150,13 @@ export function ChatWidget() {
             table: "chat_messages",
             filter: `session_id=eq.${sessionId}`,
           },
-          payload => {
+          (payload) => {
             const row = payload.new as {
               id: string;
               role: "user" | "bot" | "admin";
               text: string;
               created_at: string;
             };
-            // Chỉ thêm tin nhắn từ admin hoặc bot (tin của user đã thêm optimistic ở client)
             if (row.role === "admin" || row.role === "bot") {
               handleIncomingMessage(row);
             }
@@ -148,7 +164,6 @@ export function ChatWidget() {
         )
         .subscribe();
 
-      // 2. Channel Broadcast (Dự phòng)
       const broadcastChannel = client
         .channel(`chat:${sessionId}`)
         .on(
@@ -169,7 +184,7 @@ export function ChatWidget() {
     }
   }, [sessionId, handleIncomingMessage]);
 
-  // ── Đồng bộ trực tiếp với Server & Telegram (đảm bảo luôn nhận được tin nhắn) ──
+  // ── Đồng bộ trực tiếp với Server & Telegram ──
   useEffect(() => {
     if (!sessionId) return;
 
@@ -194,7 +209,6 @@ export function ChatWidget() {
       }
     };
 
-    // Kiểm tra ngay lập tức và lặp lại định kỳ
     syncMessages();
     const interval = setInterval(syncMessages, open ? 2500 : 6000);
     const onFocus = () => syncMessages();
@@ -211,20 +225,20 @@ export function ChatWidget() {
   const resetSession = () => {
     try {
       localStorage.removeItem(SESSION_KEY);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setSessionId(undefined);
     setMessages([WELCOME]);
   };
 
   // ── Send message ─────────────────────────────────────────────────────────
-
-  const send = async () => {
-    const text = input.trim();
+  const sendText = async (rawText: string) => {
+    const text = rawText.trim();
     if (!text || sending) return;
 
-    // Thêm tin nhắn của user vào UI ngay lập tức
-    const tempId = `temp-${Date.now()}`;
-    setMessages(prev => [
+    const tempId = makeTempId("temp");
+    setMessages((prev) => [
       ...prev,
       { id: tempId, role: "user", text, time: getTime() },
     ]);
@@ -237,41 +251,42 @@ export function ChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, sessionId }),
       });
-      const data = (await res.json()) as { sessionId?: string; error?: string };
+      const data = (await res.json()) as {
+        reply?: string | null;
+        replyId?: string;
+        sessionId?: string;
+        error?: string;
+      };
 
       if (!res.ok) throw new Error(data.error ?? "Server error");
 
-      // Lưu sessionId để dùng cho lần gửi tiếp và subscribe realtime
       if (data.sessionId && data.sessionId !== sessionId) {
         setSessionId(data.sessionId);
         try {
           localStorage.setItem(SESSION_KEY, data.sessionId);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
-      // Xác nhận đã nhận tin nếu chưa có thông báo trước đó
-      setMessages(prev => {
-        const hasAck = prev.some(m => m.id.startsWith("ack-"));
-        if (!hasAck) {
-          return [
-            ...prev,
-            {
-              id: `ack-${Date.now()}`,
-              role: "bot",
-              text: "Mình đã nhận được tin nhắn của bạn! Sẽ phản hồi trong thời gian sớm nhất ⏳",
-              time: getTime(),
-            },
-          ];
-        }
-        return prev;
-      });
-    } catch {
-      setMessages(prev => [
+      if (data.reply) {
+        handleIncomingMessage({
+          id: data.replyId ?? makeTempId("ack"),
+          role: "bot",
+          text: data.reply,
+        });
+      }
+    } catch (err) {
+      const errMsg =
+        err instanceof Error && err.message
+          ? err.message
+          : "Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc gửi email nhé!";
+      setMessages((prev) => [
         ...prev,
         {
-          id: `err-${Date.now()}`,
+          id: makeTempId("err"),
           role: "bot",
-          text: "Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc gửi email nhé!",
+          text: errMsg,
           time: getTime(),
         },
       ]);
@@ -280,6 +295,7 @@ export function ChatWidget() {
     }
   };
 
+  const send = () => sendText(input);
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -296,12 +312,12 @@ export function ChatWidget() {
             className="fixed z-50 flex flex-col rounded-2xl overflow-hidden border"
             style={{
               bottom: "90px",
-              right: "32px",
-              width: "340px",
-              maxHeight: "500px",
+              right: "24px",
+              width: "min(365px, calc(100vw - 32px))",
+              maxHeight: "540px",
               backgroundColor: "var(--bg-surface)",
               borderColor: "var(--border-color)",
-              boxShadow: "0 12px 48px rgba(0,0,0,0.16)",
+              boxShadow: "0 12px 48px rgba(0,0,0,0.22)",
               transformOrigin: "bottom right",
             }}
           >
@@ -317,8 +333,13 @@ export function ChatWidget() {
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white/30" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white leading-none mb-0.5">Cong Dev</p>
-                <p className="text-xs text-white/70">Thường trả lời trong vài giờ</p>
+                <p className="text-sm font-semibold text-white leading-none mb-0.5">
+                  Cong Dev · Live Chat
+                </p>
+                <p className="text-xs text-white/80 flex items-center gap-1">
+                  <Sparkles size={11} />
+                  Trợ lý tự động 24/7 & Kết nối Telegram
+                </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {sessionId && (
@@ -343,15 +364,17 @@ export function ChatWidget() {
             {/* Messages area */}
             <div
               className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-              style={{ backgroundColor: "#F2F5F8" }}
+              style={{ backgroundColor: "var(--bg-base)" }}
             >
-              {messages.map(msg => (
+              {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}
+                  className={`flex flex-col gap-1 ${
+                    msg.role === "user" ? "items-end" : "items-start"
+                  }`}
                 >
                   <div
-                    className="max-w-[82%] px-3.5 py-2.5 text-sm leading-relaxed"
+                    className="max-w-[85%] px-3.5 py-2.5 text-xs md:text-sm leading-relaxed whitespace-pre-line"
                     style={
                       msg.role === "user"
                         ? {
@@ -360,7 +383,7 @@ export function ChatWidget() {
                             borderRadius: "18px 18px 4px 18px",
                           }
                         : {
-                            backgroundColor: "#fff",
+                            backgroundColor: "var(--bg-surface)",
                             color: "var(--text-primary)",
                             border: "1px solid var(--border-color)",
                             borderRadius: "18px 18px 18px 4px",
@@ -369,11 +392,40 @@ export function ChatWidget() {
                   >
                     {msg.text}
                   </div>
-                  <span className="text-[11px] px-1" style={{ color: "var(--text-secondary)" }}>
-                    {msg.role === "admin" ? "Cong Dev · " : ""}{msg.time}
+                  <span
+                    className="text-[11px] px-1"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {msg.role === "admin"
+                      ? "Cong Dev (Telegram) · "
+                      : msg.role === "bot"
+                      ? "Trợ lý · "
+                      : ""}
+                    {msg.time}
                   </span>
                 </div>
               ))}
+
+              {/* Quick Reply Chips */}
+              {!sending && (
+                <div className="pt-1 flex flex-wrap gap-1.5">
+                  {QUICK_REPLIES.map((qr) => (
+                    <button
+                      key={qr.label}
+                      type="button"
+                      onClick={() => sendText(qr.text)}
+                      className="text-xs px-2.5 py-1.5 rounded-full border transition-all hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] cursor-pointer"
+                      style={{
+                        backgroundColor: "var(--bg-surface)",
+                        borderColor: "var(--border-color)",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {qr.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Sending indicator */}
               {sending && (
@@ -381,7 +433,7 @@ export function ChatWidget() {
                   <div
                     className="px-4 py-3"
                     style={{
-                      backgroundColor: "#fff",
+                      backgroundColor: "var(--bg-surface)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "18px 18px 18px 4px",
                     }}
@@ -417,14 +469,14 @@ export function ChatWidget() {
               <input
                 ref={inputRef}
                 value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => {
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     send();
                   }
                 }}
-                placeholder="Nhập tin nhắn..."
+                placeholder="Nhập tin nhắn cho Cong Dev..."
                 className="flex-1 text-sm outline-none bg-transparent placeholder:text-[var(--text-secondary)]"
                 style={{ color: "var(--text-primary)" }}
               />
@@ -434,10 +486,11 @@ export function ChatWidget() {
                 className="w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer disabled:opacity-35 active:scale-95"
                 style={{ backgroundColor: "var(--accent-color)", color: "#fff" }}
               >
-                {sending
-                  ? <Loader2 size={14} className="animate-spin" />
-                  : <Send size={14} />
-                }
+                {sending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
               </button>
             </div>
           </motion.div>

@@ -1,6 +1,17 @@
+export interface ProjectMetric {
+  label: string;
+  value: string;
+}
+
+export interface ProjectArchitectureLayer {
+  name: string;
+  items: string[];
+}
+
 export interface Project {
   slug: string;
   title: string;
+  category: "Full-stack" | "Microservices & .NET" | "E-Commerce & SaaS" | "Realtime & System";
   shortDescription: string;
   description: string;
   problem: string;
@@ -8,12 +19,37 @@ export interface Project {
   role: string;
   technologies: string[];
   features: string[];
+  metrics?: ProjectMetric[];
+  architecture?: {
+    summary: string;
+    layers: ProjectArchitectureLayer[];
+  };
   screenshots: string[];
   demoUrl?: string;
   githubUrl?: string;
   year: string;
   status: "completed" | "in-progress";
   featured: boolean;
+}
+
+export interface ExperienceItem {
+  period: string;
+  role: string;
+  company: string;
+  type: string;
+  description: string;
+  highlights: string[];
+  technologies: string[];
+}
+
+export interface TestimonialItem {
+  id: string;
+  name: string;
+  role: string;
+  company: string;
+  project: string;
+  content: string;
+  rating: number;
 }
 
 export interface Service {

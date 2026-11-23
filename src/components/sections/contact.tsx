@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CheckCircle, AlertCircle, Mail, Clock, Send, Phone } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, Mail, Clock, Send, Phone, Sparkles } from "lucide-react";
 import { GithubIcon, LinkedinIcon } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ const contactLinks = [
   {
     icon: GithubIcon,
     label: "GitHub",
-    value: "github.com/nvcong25042003",
+    value: "github.com/CongGenZ",
     href: profile.github,
   },
   {
@@ -66,11 +66,36 @@ const contactLinks = [
 export function Contact() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [prefilledFromEstimator, setPrefilledFromEstimator] = useState(false);
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
     defaultValues: { name: "", email: "", projectType: "", message: "" },
   });
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        projectType?: string;
+        message?: string;
+      }>;
+      if (customEvent.detail?.projectType) {
+        form.setValue("projectType", customEvent.detail.projectType, {
+          shouldValidate: true,
+        });
+      }
+      if (customEvent.detail?.message) {
+        form.setValue("message", customEvent.detail.message, {
+          shouldValidate: true,
+        });
+      }
+      setStatus("idle");
+      setPrefilledFromEstimator(true);
+    };
+
+    window.addEventListener("prefill-contact-form", handler);
+    return () => window.removeEventListener("prefill-contact-form", handler);
+  }, [form]);
 
   const onSubmit = async (values: ContactFormValues) => {
     setStatus("loading");
@@ -113,6 +138,22 @@ export function Contact() {
               title="Bạn đang có ý tưởng cần triển khai?"
               description="Hãy chia sẻ ý tưởng của bạn. Mình sẵn sàng trao đổi để tìm ra giải pháp phù hợp."
             />
+
+            {prefilledFromEstimator && status !== "success" && (
+              <div
+                className="mb-5 p-3.5 rounded-xl border flex items-center gap-2.5 text-xs font-medium"
+                style={{
+                  backgroundColor: "var(--label-bg)",
+                  color: "var(--label-color)",
+                  borderColor: "rgba(180, 83, 9, 0.25)",
+                }}
+              >
+                <Sparkles size={15} className="shrink-0" />
+                <span>
+                  Đã tự động điền cấu hình dự án từ bảng Ước tính chi phí. Bạn chỉ cần nhập Họ tên & Email để gửi!
+                </span>
+              </div>
+            )}
 
             {status === "success" ? (
               <div
