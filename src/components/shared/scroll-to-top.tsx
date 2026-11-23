@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useI18n } from "@/i18n/provider";
 
 const RADIUS = 20;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function ScrollToTop() {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -37,7 +39,7 @@ export function ScrollToTop() {
           exit={{ opacity: 0, scale: 0.7 }}
           transition={{ duration: 0.22, ease: "easeOut" }}
           onClick={scrollTop}
-          aria-label="Cuộn lên đầu trang"
+          aria-label={t("Cuộn lên đầu trang")}
           className="fixed bottom-[100px] right-8 z-50 cursor-pointer active:scale-95 transition-transform duration-100"
           style={{ WebkitTapHighlightColor: "transparent" }}
         >

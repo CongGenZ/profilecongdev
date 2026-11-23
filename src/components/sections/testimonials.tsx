@@ -1,8 +1,10 @@
 import { Star, Quote } from "lucide-react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { testimonials } from "@/data/experience";
+import { getI18n } from "@/i18n/server";
 
-export function Testimonials() {
+export async function Testimonials() {
+  const { t, tr } = await getI18n();
   return (
     <section
       id="testimonials"
@@ -15,12 +17,12 @@ export function Testimonials() {
       <div className="container-width">
         <SectionHeading
           label="Testimonials"
-          title="Phản hồi từ khách hàng & đối tác"
-          description="Sự hài lòng về tiến độ, chất lượng code và hiệu quả vận hành thực tế sau khi bàn giao."
+          title={t("Phản hồi từ khách hàng & đối tác")}
+          description={t("Sự hài lòng về tiến độ, chất lượng code và hiệu quả vận hành thực tế sau khi bàn giao.")}
         />
 
         <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((item) => (
+          {tr(testimonials).map((item) => (
             <div
               key={item.id}
               className="flex flex-col justify-between p-6 rounded-2xl border transition-all hover:border-[var(--accent-color)]/40 hover:shadow-sm"
@@ -74,7 +76,7 @@ export function Testimonials() {
                     color: "var(--accent-color)",
                   }}
                 >
-                  Dự án: {item.project}
+                  {t("Dự án: {project}", { project: item.project })}
                 </span>
               </div>
             </div>

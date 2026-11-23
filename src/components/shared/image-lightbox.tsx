@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useI18n } from "@/i18n/provider";
 
 interface ImageLightboxProps {
   images: string[];
@@ -11,6 +12,7 @@ interface ImageLightboxProps {
 }
 
 export function ImageLightbox({ images, title }: ImageLightboxProps) {
+  const { t } = useI18n();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const close = useCallback(() => setActiveIndex(null), []);
@@ -56,7 +58,7 @@ export function ImageLightbox({ images, title }: ImageLightboxProps) {
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-black/75 text-white backdrop-blur-xs">
             <ZoomIn size={14} />
-            Nhấn để phóng to ảnh ({images.length} ảnh)
+            {t("Nhấn để phóng to ảnh ({count} ảnh)", { count: images.length })}
           </span>
         </div>
       </div>
@@ -106,12 +108,12 @@ export function ImageLightbox({ images, title }: ImageLightboxProps) {
             {/* Top controls */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-white/90 z-10">
               <span className="text-xs md:text-sm font-medium px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-xs">
-                {title} — Ảnh {activeIndex + 1} / {images.length}
+                {title} — {t("Ảnh {current} / {total}", { current: activeIndex + 1, total: images.length })}
               </span>
               <button
                 type="button"
                 onClick={close}
-                aria-label="Đóng"
+                aria-label={t("Đóng")}
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X size={20} />
@@ -127,7 +129,7 @@ export function ImageLightbox({ images, title }: ImageLightboxProps) {
                     e.stopPropagation();
                     prev();
                   }}
-                  aria-label="Ảnh trước"
+                  aria-label={t("Ảnh trước")}
                   className="absolute left-3 md:left-6 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <ChevronLeft size={22} />
@@ -138,7 +140,7 @@ export function ImageLightbox({ images, title }: ImageLightboxProps) {
                     e.stopPropagation();
                     next();
                   }}
-                  aria-label="Ảnh tiếp theo"
+                  aria-label={t("Ảnh tiếp theo")}
                   className="absolute right-3 md:right-6 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <ChevronRight size={22} />

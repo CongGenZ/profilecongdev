@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { getSupabaseClient } from "@/lib/supabase";
+import { useI18n } from "@/i18n/provider";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ const QUICK_REPLIES = [
 const SESSION_KEY = "chat_session_id";
 
 export function ChatWidget() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
@@ -280,7 +282,7 @@ export function ChatWidget() {
       const errMsg =
         err instanceof Error && err.message
           ? err.message
-          : "Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc gửi email nhé!";
+          : t("Xin lỗi, có lỗi kết nối. Bạn thử lại sau hoặc gửi email nhé!");
       setMessages((prev) => [
         ...prev,
         {
@@ -334,18 +336,18 @@ export function ChatWidget() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white leading-none mb-0.5">
-                  Cong Dev · Live Chat
+                  {t("Cong Dev · Live Chat")}
                 </p>
                 <p className="text-xs text-white/80 flex items-center gap-1">
                   <Sparkles size={11} />
-                  Trợ lý tự động 24/7 & Kết nối Telegram
+                  {t("Trợ lý tự động 24/7 & Kết nối Telegram")}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {sessionId && (
                   <button
                     onClick={resetSession}
-                    title="Bắt đầu phiên chat mới"
+                    title={t("Bắt đầu phiên chat mới")}
                     className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                   >
                     <RotateCcw size={13} className="text-white" />
@@ -353,7 +355,7 @@ export function ChatWidget() {
                 )}
                 <button
                   onClick={() => setOpen(false)}
-                  title="Đóng"
+                  title={t("Đóng")}
                   className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 >
                   <X size={14} className="text-white" />
@@ -390,7 +392,7 @@ export function ChatWidget() {
                           }
                     }
                   >
-                    {msg.text}
+                    {msg.id === WELCOME.id ? t(msg.text) : msg.text}
                   </div>
                   <span
                     className="text-[11px] px-1"
@@ -399,7 +401,7 @@ export function ChatWidget() {
                     {msg.role === "admin"
                       ? "Cong Dev (Telegram) · "
                       : msg.role === "bot"
-                      ? "Trợ lý · "
+                      ? `${t("Trợ lý")} · `
                       : ""}
                     {msg.time}
                   </span>
@@ -413,7 +415,7 @@ export function ChatWidget() {
                     <button
                       key={qr.label}
                       type="button"
-                      onClick={() => sendText(qr.text)}
+                      onClick={() => sendText(t(qr.text))}
                       className="text-xs px-2.5 py-1.5 rounded-full border transition-all hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] cursor-pointer"
                       style={{
                         backgroundColor: "var(--bg-surface)",
@@ -421,7 +423,7 @@ export function ChatWidget() {
                         color: "var(--text-secondary)",
                       }}
                     >
-                      {qr.label}
+                      {t(qr.label)}
                     </button>
                   ))}
                 </div>
@@ -476,7 +478,7 @@ export function ChatWidget() {
                     send();
                   }
                 }}
-                placeholder="Nhập tin nhắn cho Cong Dev..."
+                placeholder={t("Nhập tin nhắn cho Cong Dev...")}
                 className="flex-1 text-sm outline-none bg-transparent placeholder:text-[var(--text-secondary)]"
                 style={{ color: "var(--text-primary)" }}
               />
@@ -516,7 +518,7 @@ export function ChatWidget() {
           backgroundColor: "var(--accent-color)",
           boxShadow: "0 4px 20px rgba(49,92,133,0.45)",
         }}
-        aria-label="Mở chat"
+        aria-label={t("Mở chat")}
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (

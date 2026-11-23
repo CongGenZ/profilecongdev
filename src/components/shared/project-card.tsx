@@ -1,14 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ExternalLink, ArrowRight, Sparkles } from "lucide-react";
 import { GithubIcon } from "@/components/shared/icons";
 import type { Project } from "@/types";
+import { useI18n } from "@/i18n/provider";
 
 interface ProjectCardProps {
   project: Project;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const { t, href } = useI18n();
   return (
     <article
       className="group flex flex-col border rounded-xl overflow-hidden bg-[var(--bg-surface)] transition-all duration-200 hover:border-[var(--accent-color)]/40 hover:shadow-md"
@@ -16,7 +20,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
     >
       {/* Screenshot */}
       <Link
-        href={`/projects/${project.slug}`}
+        href={href(`/projects/${project.slug}`)}
         className="relative aspect-[16/9] overflow-hidden block"
         style={{ background: "var(--muted)" }}
       >
@@ -66,7 +70,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <div>
           <div className="flex items-start justify-between gap-3 mb-2">
             <Link
-              href={`/projects/${project.slug}`}
+              href={href(`/projects/${project.slug}`)}
               className="font-semibold text-base leading-snug transition-colors group-hover:text-[var(--accent-color)]"
               style={{ color: "var(--text-primary)" }}
             >
@@ -150,11 +154,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
           style={{ borderColor: "var(--border-color)" }}
         >
           <Link
-            href={`/projects/${project.slug}`}
+            href={href(`/projects/${project.slug}`)}
             className="inline-flex items-center gap-1 text-sm font-medium transition-colors hover:text-[var(--accent-color)]"
             style={{ color: "var(--text-primary)" }}
           >
-            Xem Case Study
+            {t("Xem Case Study")}
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
 
@@ -178,7 +182,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Live demo"
-                title="Xem bản chạy thực tế"
+                title={t("Xem bản chạy thực tế")}
                 className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded border transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]"
                 style={{
                   borderColor: "var(--border-color)",

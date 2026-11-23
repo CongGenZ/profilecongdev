@@ -11,12 +11,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { profile } from "@/data/profile";
-import { experiences } from "@/data/experience";
+import { profile as rawProfile } from "@/data/profile";
+import { experiences as rawExperiences } from "@/data/experience";
+import { useI18n } from "@/i18n/provider";
 import { techStack } from "@/data/tech-stack";
 
 export function About() {
   const [cvOpen, setCvOpen] = useState(false);
+  const { t, tr } = useI18n();
+  const profile = tr(rawProfile);
+  const experiences = tr(rawExperiences);
 
   const paragraphs = profile.bio
     .trim()
@@ -38,7 +42,7 @@ export function About() {
           <div className="space-y-6">
             <SectionHeading
               label="About & Experience"
-              title="Một chút về mình & lộ trình làm việc"
+              title={t("Một chút về mình & lộ trình làm việc")}
             />
 
             <div
@@ -64,13 +68,13 @@ export function About() {
                     className="text-sm font-semibold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Hồ sơ năng lực (CV)
+                    {t("Hồ sơ năng lực (CV)")}
                   </p>
                   <p
                     className="text-xs"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Tóm tắt kỹ năng, kinh nghiệm & dự án
+                    {t("Tóm tắt kỹ năng, kinh nghiệm & dự án")}
                   </p>
                 </div>
               </div>
@@ -87,7 +91,7 @@ export function About() {
                   }}
                 >
                   <FileText size={14} />
-                  Xem Hồ sơ / CV
+                  {t("Xem Hồ sơ / CV")}
                 </Button>
                 <Button
                   type="button"
@@ -105,7 +109,7 @@ export function About() {
                   }}
                 >
                   <Sparkles size={14} />
-                  Báo giá nhanh
+                  {t("Báo giá nhanh")}
                 </Button>
               </div>
             </div>
@@ -128,10 +132,10 @@ export function About() {
             {/* Highlights */}
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3.5">
               {[
-                { label: "Kinh nghiệm thực chiến", value: "2+ năm" },
-                { label: "Dự án đã hoàn thiện", value: "10+ dự án" },
-                { label: "Thời gian phản hồi", value: "< 2 giờ" },
-                { label: "Hình thức hợp tác", value: "Freelance / Remote" },
+                { label: t("Kinh nghiệm thực chiến"), value: t("2+ năm") },
+                { label: t("Dự án đã hoàn thiện"), value: t("10+ dự án") },
+                { label: t("Thời gian phản hồi"), value: t("< 2 giờ") },
+                { label: t("Hình thức hợp tác"), value: "Freelance / Remote" },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -168,7 +172,7 @@ export function About() {
                   className="text-base font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Lộ trình kinh nghiệm & Dự án thực tế
+                  {t("Lộ trình kinh nghiệm & Dự án thực tế")}
                 </h3>
               </div>
 
@@ -285,13 +289,13 @@ export function About() {
                 className="text-xs font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: "var(--accent-color)" }}
               >
-                Tóm tắt chuyên môn
+                {t("Tóm tắt chuyên môn")}
               </p>
               <p
                 className="text-xs md:text-sm leading-relaxed"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Full-stack Web Developer chuyên xây dựng ứng dụng web hiện đại với Next.js, React, TypeScript kết hợp Backend .NET Microservices, Node.js và PostgreSQL/Supabase. Chú trọng hiệu năng, kiến trúc sạch và giải quyết bài toán thực tế của doanh nghiệp.
+                {t("Full-stack Web Developer chuyên xây dựng ứng dụng web hiện đại với Next.js, React, TypeScript kết hợp Backend .NET Microservices, Node.js và PostgreSQL/Supabase. Chú trọng hiệu năng, kiến trúc sạch và giải quyết bài toán thực tế của doanh nghiệp.")}
               </p>
             </div>
 
@@ -300,7 +304,7 @@ export function About() {
                 className="text-xs font-semibold uppercase tracking-wider mb-2.5"
                 style={{ color: "var(--accent-color)" }}
               >
-                Kinh nghiệm làm việc
+                {t("Kinh nghiệm làm việc")}
               </p>
               <div className="space-y-4">
                 {experiences.map((exp) => (
@@ -338,7 +342,7 @@ export function About() {
                 className="text-xs font-semibold uppercase tracking-wider mb-2"
                 style={{ color: "var(--accent-color)" }}
               >
-                Kỹ năng công nghệ
+                {t("Kỹ năng công nghệ")}
               </p>
               <div className="grid sm:grid-cols-2 gap-2.5">
                 {techStack.map((cat) => (
@@ -376,7 +380,7 @@ export function About() {
                 className="text-xs gap-1.5 cursor-pointer"
               >
                 <Download size={14} />
-                In / Lưu PDF
+                {t("In / Lưu PDF")}
               </Button>
               <Button
                 type="button"
@@ -393,7 +397,7 @@ export function About() {
                   color: "#ffffff",
                 }}
               >
-                Liên hệ hợp tác
+                {t("Liên hệ hợp tác")}
               </Button>
             </div>
           </div>

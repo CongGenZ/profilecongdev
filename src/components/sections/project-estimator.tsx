@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Calculator, Clock, Sparkles, Check, ArrowRight, Layers } from "lucide-react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/provider";
 
 interface BaseTypeOption {
   id: string;
@@ -118,6 +119,9 @@ const ADDON_FEATURES: AddonFeature[] = [
 ];
 
 export function ProjectEstimator() {
+  const { t, tr } = useI18n();
+  const baseTypes = useMemo(() => tr(BASE_TYPES), [tr]);
+  const addonFeatures = useMemo(() => tr(ADDON_FEATURES), [tr]);
   const [selectedBaseId, setSelectedBaseId] = useState<string>("webapp");
   const [selectedAddons, setSelectedAddons] = useState<string[]>(["admin", "realtime"]);
   const [urgent, setUrgent] = useState<boolean>(false);
@@ -129,8 +133,8 @@ export function ProjectEstimator() {
   };
 
   const estimation = useMemo(() => {
-    const base = BASE_TYPES.find((b) => b.id === selectedBaseId) ?? BASE_TYPES[0];
-    const addons = ADDON_FEATURES.filter((a) => selectedAddons.includes(a.id));
+    const base = baseTypes.find((b) => b.id === selectedBaseId) ?? baseTypes[0];
+    const addons = addonFeatures.filter((a) => selectedAddons.includes(a.id));
 
     let minCost = base.minMillion + addons.reduce((acc, a) => acc + a.minMillion, 0);
     let maxCost = base.maxMillion + addons.reduce((acc, a) => acc + a.maxMillion, 0);
@@ -157,19 +161,26 @@ export function ProjectEstimator() {
       minWeeks: minW,
       maxWeeks: maxW,
     };
-  }, [selectedBaseId, selectedAddons, urgent]);
+  }, [selectedBaseId, selectedAddons, urgent, baseTypes, addonFeatures]);
 
   const handleApplyToContact = () => {
     const addonNames =
       estimation.addons.length > 0
         ? estimation.addons.map((a) => `- ${a.label}`).join("\n")
-        : "- Các tính năng cơ bản theo gói";
+        : `- ${t("Các tính năng cơ bản theo gói")}`;
 
     const summaryText =
-      `Mình quan tâm triển khai gói: ${estimation.base.label}\n` +
-      `Tính năng đã chọn:\n${addonNames}\n` +
-      `Tiến độ: ${urgent ? "Ưu tiên làm gấp" : "Tiêu chuẩn"} (Ước tính ~${estimation.minWeeks}-${estimation.maxWeeks} tuần | Ngân sách tham khảo: ${estimation.minCost} - ${estimation.maxCost} triệu VNĐ).\n\n` +
-      `Mô tả thêm về bài toán của mình: `;
+      t("Mình quan tâm triển khai gói: {plan}", { plan: estimation.base.label }) + "\n" +
+      t("Tính năng đã chọn:") + `\n${addonNames}\n` +
+      t("Tiến độ: {speed} (Ước tính ~{minWeeks}-{maxWeeks} tuần | Ngân sách tham khảo: {minCost} - {maxCost} triệu VNĐ).", {
+        speed: urgent ? t("Ưu tiên làm gấp") : t("Tiêu chuẩn"),
+        minWeeks: estimation.minWeeks,
+        maxWeeks: estimation.maxWeeks,
+        minCost: estimation.minCost,
+        maxCost: estimation.maxCost,
+      }) +
+      "\n\n" +
+      t("Mô tả thêm về bài toán của mình:") + " ";
 
     window.dispatchEvent(
       new CustomEvent("prefill-contact-form", {
@@ -195,8 +206,8 @@ export function ProjectEstimator() {
       <div className="container-width">
         <SectionHeading
           label="Cost & Timeline Estimator"
-          title="Ước tính nhanh chi phí & thời gian dự án"
-          description="Chọn loại sản phẩm và các tính năng bạn cần để xem ngay khoảng ngân sách, lộ trình tham khảo và kiến trúc đề xuất."
+          title={t("Ước tính nhanh chi phí & thời gian dự án")}
+          description={t("Chọn loại sản phẩm và các tính năng bạn cần để xem ngay khoảng ngân sách, lộ trình tham khảo và kiến trúc đề xuất.")}
         />
 
         <div className="grid lg:grid-cols-[1.65fr_1fr] gap-8 items-start">
@@ -208,10 +219,10 @@ export function ProjectEstimator() {
                 className="text-xs font-semibold uppercase tracking-wider mb-3"
                 style={{ color: "var(--accent-color)" }}
               >
-                1. Chọn loại sản phẩm cần xây dựng
+                {t("1. Chọn loại sản phẩm cần xây dựng")}
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
-                {BASE_TYPES.map((type) => {
+                {baseTypes.map((type) => {
                   const active = selectedBaseId === type.id;
                   return (
                     <button
@@ -272,10 +283,10 @@ export function ProjectEstimator() {
                 className="text-xs font-semibold uppercase tracking-wider mb-3"
                 style={{ color: "var(--accent-color)" }}
               >
-                2. Chọn các tính năng nâng cao đi kèm
+                {t("2. Chọn các tính năng nâng cao đi kèm")}
               </p>
               <div className="grid sm:grid-cols-2 gap-2.5">
-                {ADDON_FEATURES.map((addon) => {
+                {addonFeatures.map((addon) => {
                   const checked = selectedAddons.includes(addon.id);
                   return (
                     <button
@@ -325,10 +336,10 @@ export function ProjectEstimator() {
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-color)" }}>
               <div>
                 <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Ưu tiên rút ngắn tiến độ (Fast-track)
+                  {t("Ưu tiên rút ngắn tiến độ (Fast-track)")}
                 </p>
                 <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  Tăng cường thời gian làm việc để bàn giao bản MVP sớm hơn ~25–30%
+                  {t("Tăng cường thời gian làm việc để bàn giao bản MVP sớm hơn ~25–30%")}
                 </p>
               </div>
               <button
@@ -349,7 +360,7 @@ export function ProjectEstimator() {
                       }
                 }
               >
-                {urgent ? "⚡ Đang bật ưu tiên gấp" : "Tiến độ tiêu chuẩn"}
+                {urgent ? t("⚡ Đang bật ưu tiên gấp") : t("Tiến độ tiêu chuẩn")}
               </button>
             </div>
           </div>
@@ -370,7 +381,7 @@ export function ProjectEstimator() {
                   className="text-base font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Kết quả ước tính sơ bộ
+                  {t("Kết quả ước tính sơ bộ")}
                 </h3>
               </div>
               <span
@@ -381,7 +392,7 @@ export function ProjectEstimator() {
                   borderColor: "rgba(180,83,9,0.2)",
                 }}
               >
-                Tham khảo
+                {t("Tham khảo")}
               </span>
             </div>
 
@@ -398,16 +409,16 @@ export function ProjectEstimator() {
                   style={{ color: "var(--text-secondary)" }}
                 >
                   <Sparkles size={12} style={{ color: "var(--accent-color)" }} />
-                  Ngân sách dự kiến
+                  {t("Ngân sách dự kiến")}
                 </p>
                 <p
                   className="text-lg md:text-xl font-bold"
                   style={{ color: "var(--accent-color)" }}
                 >
-                  {estimation.minCost} – {estimation.maxCost} tr
+                  {estimation.minCost} – {estimation.maxCost} {t("tr")}
                 </p>
                 <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                  VNĐ (Trọn gói, không phí ẩn)
+                  {t("VNĐ (Trọn gói, không phí ẩn)")}
                 </p>
               </div>
 
@@ -423,16 +434,16 @@ export function ProjectEstimator() {
                   style={{ color: "var(--text-secondary)" }}
                 >
                   <Clock size={12} style={{ color: "var(--accent-color)" }} />
-                  Thời gian triển khai
+                  {t("Thời gian triển khai")}
                 </p>
                 <p
                   className="text-lg md:text-xl font-bold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {estimation.minWeeks} – {estimation.maxWeeks} tuần
+                  {estimation.minWeeks} – {estimation.maxWeeks} {t("tuần")}
                 </p>
                 <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                  Bao gồm kiểm thử & deploy
+                  {t("Bao gồm kiểm thử & deploy")}
                 </p>
               </div>
             </div>
@@ -444,7 +455,7 @@ export function ProjectEstimator() {
                 style={{ color: "var(--text-secondary)" }}
               >
                 <Layers size={13} style={{ color: "var(--accent-color)" }} />
-                Công nghệ đề xuất
+                {t("Công nghệ đề xuất")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {estimation.base.stack.map((tech) => (
@@ -467,7 +478,7 @@ export function ProjectEstimator() {
               className="text-xs leading-relaxed"
               style={{ color: "var(--text-secondary)" }}
             >
-              * Chi phí thực tế có thể linh hoạt điều chỉnh tùy theo mức độ phức tạp của từng màn hình và yêu cầu tích hợp cụ thể.
+              {t("* Chi phí thực tế có thể linh hoạt điều chỉnh tùy theo mức độ phức tạp của từng màn hình và yêu cầu tích hợp cụ thể.")}
             </p>
 
             <Button
@@ -479,7 +490,7 @@ export function ProjectEstimator() {
                 color: "#ffffff",
               }}
             >
-              Nhận tư vấn với cấu hình này
+              {t("Nhận tư vấn với cấu hình này")}
               <ArrowRight size={15} />
             </Button>
           </div>

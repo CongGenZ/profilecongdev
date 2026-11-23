@@ -95,3 +95,21 @@ create policy "update messages" on public.chat_messages
 -- contact_submissions: chỉ insert từ client, không read (admin dùng service key)
 create policy "insert contact" on public.contact_submissions
   for insert with check (true);
+
+-- ─── translations (cache cho /api/translate) ─────────────────
+-- Mỗi chuỗi nguồn + ngôn ngữ đích chỉ dịch bằng AI một lần, các lần sau đọc từ đây.
+create table if not exists public.translations (
+  id               uuid primary key default uuid_generate_v4(),
+  created_at       timestamptz not null default now(),
+  source_hash      text not null,
+  source_lang      text not null,
+  target_lang      text not null,
+  source_text      text not null,
+  translated_text  text not null
+);
+
+create unique index if not exists translations_hash_target_idx
+  on public.translations(source_hash, target_lang);
+
+-- Chỉ server (service role key) được đọc/ghi — không mở policy cho client.
+alter table public.translations enable row level security;

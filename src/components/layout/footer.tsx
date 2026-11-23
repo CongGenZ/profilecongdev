@@ -2,17 +2,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, MapPin, Clock, ExternalLink, ArrowUp } from "lucide-react";
 import { GithubIcon, LinkedinIcon } from "@/components/shared/icons";
-import { profile } from "@/data/profile";
+import { profile as rawProfile } from "@/data/profile";
+import { getI18n } from "@/i18n/server";
 
-export function Footer() {
+export async function Footer() {
+  const { t, tr, href } = await getI18n();
+  const profile = tr(rawProfile);
   const year = new Date().getFullYear();
 
   const quickLinks = [
-    { label: "Giới thiệu", href: "#about" },
-    { label: "Dịch vụ", href: "#services" },
-    { label: "Dự án tiêu biểu", href: "#projects" },
-    { label: "Quy trình làm việc", href: "#process" },
-    { label: "Liên hệ tư vấn", href: "#contact" },
+    { label: t("Giới thiệu"), href: "#about" },
+    { label: t("Dịch vụ"), href: "#services" },
+    { label: t("Dự án tiêu biểu"), href: "#projects" },
+    { label: t("Quy trình làm việc"), href: "#process" },
+    { label: t("Liên hệ tư vấn"), href: "#contact" },
   ];
 
   return (
@@ -31,7 +34,7 @@ export function Footer() {
             <div>
               {/* Logo nổi bật phóng to */}
               <Link
-                href="/"
+                href={href("/")}
                 aria-label={profile.displayName}
                 className="inline-block group transition-transform hover:scale-105"
               >
@@ -52,8 +55,7 @@ export function Footer() {
                 className="text-xs leading-relaxed mt-4 max-w-sm"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Chuyên phát triển Website & Web Application theo yêu cầu với hiệu năng cao,
-                giao diện hiện đại và tối ưu trải nghiệm người dùng.
+                {t("Chuyên phát triển Website & Web Application theo yêu cầu với hiệu năng cao, giao diện hiện đại và tối ưu trải nghiệm người dùng.")}
               </p>
 
               {/* Status Badge */}
@@ -68,7 +70,7 @@ export function Footer() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span>Sẵn sàng nhận dự án mới</span>
+                <span>{t("Sẵn sàng nhận dự án mới")}</span>
               </div>
             </div>
 
@@ -123,7 +125,7 @@ export function Footer() {
               {profile.phone && (
                 <a
                   href={`tel:${profile.phone}`}
-                  aria-label="Điện thoại"
+                  aria-label={t("Điện thoại")}
                   className="w-9 h-9 rounded-lg flex items-center justify-center border transition-all hover:scale-105 hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]"
                   style={{
                     borderColor: "var(--border-color)",
@@ -143,7 +145,7 @@ export function Footer() {
               className="font-semibold text-sm tracking-wide uppercase mb-4"
               style={{ color: "var(--text-primary)" }}
             >
-              Liên hệ trực tiếp
+              {t("Liên hệ trực tiếp")}
             </h3>
             <ul className="flex flex-col gap-3 text-xs">
               {profile.phone && (
@@ -191,10 +193,10 @@ export function Footer() {
                 />
                 <div>
                   <span className="block font-medium" style={{ color: "var(--text-primary)" }}>
-                    Giờ hỗ trợ:
+                    {t("Giờ hỗ trợ:")}
                   </span>
                   <span style={{ color: "var(--text-secondary)" }}>
-                    Thứ 2 – Thứ 7 (08:00 – 21:00)
+                    {t("Thứ 2 – Thứ 7 (08:00 – 21:00)")}
                   </span>
                 </div>
               </li>
@@ -205,10 +207,10 @@ export function Footer() {
                 />
                 <div>
                   <span className="block font-medium" style={{ color: "var(--text-primary)" }}>
-                    Địa bàn:
+                    {t("Địa bàn:")}
                   </span>
                   <span style={{ color: "var(--text-secondary)" }}>
-                    Landmark 72, Hà Nội & Remote toàn quốc
+                    {t("Landmark 72, Hà Nội & Remote toàn quốc")}
                   </span>
                 </div>
               </li>
@@ -240,7 +242,7 @@ export function Footer() {
                   className="font-semibold text-sm tracking-wide"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Vị trí trên bản đồ
+                  {t("Vị trí trên bản đồ")}
                 </h3>
               </div>
               <span
@@ -264,7 +266,7 @@ export function Footer() {
               }}
             >
               <iframe
-                title="Bản đồ vị trí Landmark 72 - Cong Dev"
+                title={t("Bản đồ vị trí Landmark 72 - Cong Dev")}
                 src={
                   profile.mapEmbedUrl ||
                   "https://maps.google.com/maps?q=Keangnam+Landmark+72+Hanoi&t=&z=15&ie=UTF8&iwloc=&output=embed"
@@ -292,7 +294,7 @@ export function Footer() {
                     style={{ color: "var(--text-primary)" }}
                     title={profile.address}
                   >
-                    {profile.address || "Tòa Keangnam Landmark 72, Phạm Hùng, Nam Từ Liêm, Hà Nội"}
+                    {profile.address || t("Tòa Keangnam Landmark 72, Phạm Hùng, Nam Từ Liêm, Hà Nội")}
                   </p>
                 </div>
                 <a
@@ -304,7 +306,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-[var(--accent-color)] hover:underline"
                 >
-                  <span>Chỉ đường</span>
+                  <span>{t("Chỉ đường")}</span>
                   <ExternalLink size={12} />
                 </a>
               </div>
@@ -320,15 +322,15 @@ export function Footer() {
             color: "var(--text-secondary)",
           }}
         >
-          <p>© {year} {profile.displayName}. Mọi quyền được bảo lưu.</p>
+          <p>© {year} {profile.displayName}. {t("Mọi quyền được bảo lưu.")}</p>
           <div className="flex items-center gap-4">
-            <span className="hidden sm:inline">Phát triển với Next.js & Tailwind CSS</span>
+            <span className="hidden sm:inline">{t("Phát triển với Next.js & Tailwind CSS")}</span>
             <a
               href="#home"
-              aria-label="Về đầu trang"
+              aria-label={t("Về đầu trang")}
               className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-[var(--accent-color)]"
             >
-              <span>Đầu trang</span>
+              <span>{t("Đầu trang")}</span>
               <ArrowUp size={13} />
             </a>
           </div>

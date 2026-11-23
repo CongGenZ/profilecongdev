@@ -6,7 +6,9 @@ import { createServerClient } from "@/lib/supabase";
 
 export interface ContactResult {
   success: boolean;
+  /** Chuỗi tiếng Việt gốc — client dịch bằng t(message, vars) */
   message: string;
+  vars?: Record<string, string>;
 }
 
 const contactCooldownMap = new Map<string, number>();
@@ -123,7 +125,8 @@ export async function submitContact(
   if (emailSent || telegramSent || dbSaved) {
     return {
       success: true,
-      message: `Cảm ơn ${name}! Yêu cầu của bạn đã được tiếp nhận thành công. Mình sẽ phản hồi qua email trong vòng 24 giờ.`,
+      message: "Cảm ơn {name}! Yêu cầu của bạn đã được tiếp nhận thành công. Mình sẽ phản hồi qua email trong vòng 24 giờ.",
+      vars: { name },
     };
   }
 

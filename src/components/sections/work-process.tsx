@@ -1,7 +1,10 @@
 import { SectionHeading } from "@/components/shared/section-heading";
-import { workSteps } from "@/data/tech-stack";
+import { workSteps as rawSteps } from "@/data/tech-stack";
+import { getI18n } from "@/i18n/server";
 
-export function WorkProcess() {
+export async function WorkProcess() {
+  const { t, tr } = await getI18n();
+  const workSteps = tr(rawSteps);
   return (
     <section
       id="process"
@@ -14,8 +17,8 @@ export function WorkProcess() {
       <div className="container-width">
         <SectionHeading
           label="Process"
-          title="Quy trình làm việc"
-          description="Mình làm việc theo quy trình rõ ràng để đảm bảo dự án đúng tiến độ và đúng yêu cầu."
+          title={t("Quy trình làm việc")}
+          description={t("Mình làm việc theo quy trình rõ ràng để đảm bảo dự án đúng tiến độ và đúng yêu cầu.")}
         />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-0">

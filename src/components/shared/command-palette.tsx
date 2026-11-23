@@ -17,6 +17,8 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { projects } from "@/data/projects";
 import { profile } from "@/data/profile";
+import { useI18n } from "@/i18n/provider";
+import { stripLocale } from "@/i18n/config";
 
 interface CommandItem {
   id: string;
@@ -33,6 +35,7 @@ export function CommandPalette() {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { t, tr, href, locale } = useI18n();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -56,10 +59,10 @@ export function CommandPalette() {
   const navigateToSection = (hash: string) => {
     setOpen(false);
     const id = hash.replace("#", "");
-    if (pathname === "/") {
+    if (stripLocale(pathname) === "/") {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     } else {
-      router.push(`/${hash}`);
+      router.push(href(`/${hash}`));
     }
   };
 
@@ -67,8 +70,8 @@ export function CommandPalette() {
     () => [
       {
         id: "act-chat",
-        group: "Thao tác nhanh",
-        label: "Mở Live Chat với Cong Dev (Kết nối Telegram)",
+        group: t("Thao tác nhanh"),
+        label: t("Mở Live Chat với Cong Dev (Kết nối Telegram)"),
         hint: "Chat 24/7",
         icon: MessageCircle,
         action: () => {
@@ -78,16 +81,16 @@ export function CommandPalette() {
       },
       {
         id: "act-estimator",
-        group: "Thao tác nhanh",
-        label: "Ước tính chi phí & thời gian làm dự án",
+        group: t("Thao tác nhanh"),
+        label: t("Ước tính chi phí & thời gian làm dự án"),
         hint: "Estimator",
         icon: Calculator,
         action: () => navigateToSection("#estimator"),
       },
       {
         id: "act-theme",
-        group: "Thao tác nhanh",
-        label: "Chuyển đổi giao diện Sáng / Tối (Dark Mode)",
+        group: t("Thao tác nhanh"),
+        label: t("Chuyển đổi giao diện Sáng / Tối (Dark Mode)"),
         hint: "Theme",
         icon: Sun,
         action: () => {
@@ -97,8 +100,10 @@ export function CommandPalette() {
       },
       {
         id: "act-copy-email",
-        group: "Thao tác nhanh",
-        label: copied ? "Đã sao chép Email vào Clipboard!" : `Sao chép Email (${profile.email})`,
+        group: t("Thao tác nhanh"),
+        label: copied
+          ? t("Đã sao chép Email vào Clipboard!")
+          : t("Sao chép Email ({email})", { email: profile.email }),
         hint: "Copy",
         icon: copied ? Check : Copy,
         action: () => {
@@ -112,47 +117,47 @@ export function CommandPalette() {
       },
       {
         id: "nav-about",
-        group: "Điều hướng",
-        label: "Giới thiệu & Lộ trình kinh nghiệm (CV)",
+        group: t("Điều hướng"),
+        label: t("Giới thiệu & Lộ trình kinh nghiệm (CV)"),
         icon: Compass,
         action: () => navigateToSection("#about"),
       },
       {
         id: "nav-services",
-        group: "Điều hướng",
-        label: "Các gói dịch vụ phát triển Web & App",
+        group: t("Điều hướng"),
+        label: t("Các gói dịch vụ phát triển Web & App"),
         icon: Compass,
         action: () => navigateToSection("#services"),
       },
       {
         id: "nav-testimonials",
-        group: "Điều hướng",
-        label: "Đánh giá từ khách hàng & đối tác",
+        group: t("Điều hướng"),
+        label: t("Đánh giá từ khách hàng & đối tác"),
         icon: Compass,
         action: () => navigateToSection("#testimonials"),
       },
       {
         id: "nav-contact",
-        group: "Điều hướng",
-        label: "Gửi yêu cầu liên hệ & tư vấn dự án",
+        group: t("Điều hướng"),
+        label: t("Gửi yêu cầu liên hệ & tư vấn dự án"),
         icon: Mail,
         action: () => navigateToSection("#contact"),
       },
-      ...projects.map((p) => ({
+      ...tr(projects).map((p) => ({
         id: `proj-${p.slug}`,
-        group: "Dự án & Case Studies",
+        group: t("Dự án & Case Studies"),
         label: `${p.title} (${p.category})`,
         hint: p.year,
         icon: FolderGit2,
         action: () => {
           setOpen(false);
-          router.push(`/projects/${p.slug}`);
+          router.push(href(`/projects/${p.slug}`));
         },
       })),
       {
         id: "ext-github",
-        group: "Liên kết",
-        label: "Mở GitHub (@CongGenZ)",
+        group: t("Liên kết"),
+        label: t("Mở GitHub (@CongGenZ)"),
         hint: "External",
         icon: ExternalLink,
         action: () => {
@@ -162,7 +167,7 @@ export function CommandPalette() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [copied, pathname]
+    [copied, pathname, locale]
   );
 
   const filtered = useMemo(() => {
@@ -209,7 +214,7 @@ export function CommandPalette() {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Tìm dự án, báo giá, mở chat hoặc chuyển trang..."
+                placeholder={t("Tìm dự án, báo giá, mở chat hoặc chuyển trang...")}
                 className="flex-1 text-sm bg-transparent outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
@@ -233,7 +238,7 @@ export function CommandPalette() {
                   className="text-xs text-center py-8"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Không tìm thấy kết quả phù hợp.
+                  {t("Không tìm thấy kết quả phù hợp.")}
                 </p>
               ) : (
                 filtered.map((item) => {

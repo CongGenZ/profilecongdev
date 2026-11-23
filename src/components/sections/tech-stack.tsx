@@ -1,5 +1,6 @@
 import { SectionHeading } from "@/components/shared/section-heading";
 import { techStack } from "@/data/tech-stack";
+import { getI18n } from "@/i18n/server";
 
 // Brand colors cho từng tech
 const TECH_META: Record<string, { color: string; bg: string; abbr?: string }> = {
@@ -98,7 +99,8 @@ function CategoryCard({ category, items }: { category: string; items: string[] }
   );
 }
 
-export function TechStack() {
+export async function TechStack() {
+  const { t } = await getI18n();
   return (
     <section
       id="tech"
@@ -106,7 +108,7 @@ export function TechStack() {
       style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-color)" }}
     >
       <div className="container-width">
-        <SectionHeading label="Stack" title="Công nghệ mình sử dụng" />
+        <SectionHeading label="Stack" title={t("Công nghệ mình sử dụng")} />
 
         <div className="grid md:grid-cols-2 gap-5">
           {techStack.map((group) => (

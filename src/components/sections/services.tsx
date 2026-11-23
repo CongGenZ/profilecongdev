@@ -1,6 +1,7 @@
 import { Globe, Layout, Smartphone, Wrench } from "lucide-react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { services } from "@/data/services";
+import { getI18n } from "@/i18n/server";
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   Globe,
@@ -9,7 +10,8 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   Wrench,
 };
 
-export function Services() {
+export async function Services() {
+  const { t, tr } = await getI18n();
   return (
     <section
       id="services"
@@ -22,11 +24,11 @@ export function Services() {
       <div className="container-width">
         <SectionHeading
           label="Services"
-          title="Mình có thể giúp bạn những gì?"
+          title={t("Mình có thể giúp bạn những gì?")}
         />
 
         <div className="grid sm:grid-cols-2 gap-5">
-          {services.map((service) => {
+          {tr(services).map((service) => {
             const Icon = iconMap[service.icon] ?? Globe;
 
             return (

@@ -27,6 +27,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { contactSchema, type ContactFormValues } from "@/lib/validations";
 import { submitContact } from "@/actions/contact";
 import { profile } from "@/data/profile";
+import { useI18n } from "@/i18n/provider";
 
 const projectTypes = [
   { value: "website", label: "Website / Landing page" },
@@ -64,6 +65,7 @@ const contactLinks = [
 ];
 
 export function Contact() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [prefilledFromEstimator, setPrefilledFromEstimator] = useState(false);
@@ -103,15 +105,15 @@ export function Contact() {
       const result = await submitContact(values);
       if (result.success) {
         setStatus("success");
-        setMessage(result.message);
+        setMessage(t(result.message, result.vars));
         form.reset();
       } else {
         setStatus("error");
-        setMessage(result.message);
+        setMessage(t(result.message, result.vars));
       }
     } catch {
       setStatus("error");
-      setMessage("Có lỗi xảy ra. Vui lòng thử lại sau.");
+      setMessage(t("Có lỗi xảy ra. Vui lòng thử lại sau."));
     }
   };
 
@@ -135,8 +137,8 @@ export function Contact() {
           >
             <SectionHeading
               label="Contact"
-              title="Bạn đang có ý tưởng cần triển khai?"
-              description="Hãy chia sẻ ý tưởng của bạn. Mình sẵn sàng trao đổi để tìm ra giải pháp phù hợp."
+              title={t("Bạn đang có ý tưởng cần triển khai?")}
+              description={t("Hãy chia sẻ ý tưởng của bạn. Mình sẵn sàng trao đổi để tìm ra giải pháp phù hợp.")}
             />
 
             {prefilledFromEstimator && status !== "success" && (
@@ -150,7 +152,7 @@ export function Contact() {
               >
                 <Sparkles size={15} className="shrink-0" />
                 <span>
-                  Đã tự động điền cấu hình dự án từ bảng Ước tính chi phí. Bạn chỉ cần nhập Họ tên & Email để gửi!
+                  {t("Đã tự động điền cấu hình dự án từ bảng Ước tính chi phí. Bạn chỉ cần nhập Họ tên & Email để gửi!")}
                 </span>
               </div>
             )}
@@ -163,7 +165,7 @@ export function Contact() {
                 <div className="flex items-start gap-3">
                   <CheckCircle size={22} className="text-green-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-base font-semibold text-green-900 mb-1">Gửi thành công!</p>
+                    <p className="text-base font-semibold text-green-900 mb-1">{t("Gửi thành công!")}</p>
                     <p className="text-sm text-green-700 leading-relaxed">{message}</p>
                   </div>
                 </div>
@@ -174,7 +176,7 @@ export function Contact() {
                   onClick={() => setStatus("idle")}
                   className="text-xs font-medium border-green-300 text-green-800 hover:bg-green-100"
                 >
-                  Gửi yêu cầu khác
+                  {t("Gửi yêu cầu khác")}
                 </Button>
               </div>
             ) : (
@@ -188,7 +190,7 @@ export function Contact() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                            Họ và tên
+                            {t("Họ và tên")}
                           </FormLabel>
                           <FormControl>
                             <div>
@@ -241,7 +243,7 @@ export function Contact() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                          Loại dự án
+                          {t("Loại dự án")}
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -253,14 +255,14 @@ export function Contact() {
                                   backgroundColor: "var(--bg-base)",
                                 }}
                               >
-                                <SelectValue placeholder="Chọn loại dự án..." />
+                                <SelectValue placeholder={t("Chọn loại dự án...")} />
                               </SelectTrigger>
                             </div>
                           </FormControl>
                           <SelectContent>
                             {projectTypes.map((type) => (
                               <SelectItem key={type.value} value={type.value}>
-                                {type.label}
+                                {t(type.label)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -276,12 +278,12 @@ export function Contact() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                          Mô tả yêu cầu
+                          {t("Mô tả yêu cầu")}
                         </FormLabel>
                         <FormControl>
                           <div>
                             <Textarea
-                              placeholder="Mô tả ngắn về dự án, tính năng cần có, timeline và ngân sách dự kiến..."
+                              placeholder={t("Mô tả ngắn về dự án, tính năng cần có, timeline và ngân sách dự kiến...")}
                               rows={5}
                               {...field}
                               className="text-sm resize-none rounded-xl transition-shadow"
@@ -316,12 +318,12 @@ export function Contact() {
                     {status === "loading" ? (
                       <>
                         <Loader2 size={15} className="animate-spin" />
-                        Đang gửi...
+                        {t("Đang gửi...")}
                       </>
                     ) : (
                       <>
                         <Send size={15} />
-                        Gửi yêu cầu
+                        {t("Gửi yêu cầu")}
                       </>
                     )}
                   </Button>
@@ -335,7 +337,7 @@ export function Contact() {
             {/* Contact links */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
-                Liên hệ trực tiếp
+                {t("Liên hệ trực tiếp")}
               </p>
               <div className="space-y-2">
                 {contactLinks.map(({ icon: Icon, label, value, href }) => (
@@ -366,7 +368,7 @@ export function Contact() {
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs font-medium mb-0.5" style={{ color: "var(--text-secondary)" }}>
-                        {label}
+                        {t(label)}
                       </p>
                       <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
                         {value}
@@ -389,11 +391,13 @@ export function Contact() {
               <div className="flex items-center gap-2 mb-1.5">
                 <Clock size={13} style={{ color: "var(--accent-color)" }} />
                 <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Thời gian phản hồi
+                  {t("Thời gian phản hồi")}
                 </p>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Thường trong vòng <span className="font-medium" style={{ color: "var(--text-primary)" }}>24 giờ</span> trong ngày làm việc.
+                {t("Thường trong vòng")}{" "}
+                <span className="font-medium" style={{ color: "var(--text-primary)" }}>{t("24 giờ")}</span>{" "}
+                {t("trong ngày làm việc.")}
               </p>
             </div>
           </div>

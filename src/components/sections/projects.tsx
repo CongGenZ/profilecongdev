@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { ProjectCard } from "@/components/shared/project-card";
-import { projects } from "@/data/projects";
+import { projects as rawProjects } from "@/data/projects";
+import { useI18n } from "@/i18n/provider";
 
 const CATEGORIES = [
   "Tất cả",
@@ -16,6 +17,8 @@ const CATEGORIES = [
 ] as const;
 
 export function Projects() {
+  const { t, tr, href } = useI18n();
+  const projects = useMemo(() => tr(rawProjects), [tr]);
   const [activeCategory, setActiveCategory] = useState<string>("Tất cả");
 
   const filteredProjects = useMemo(() => {
@@ -23,7 +26,7 @@ export function Projects() {
       return projects.filter((p) => p.featured);
     }
     return projects.filter((p) => p.category === activeCategory);
-  }, [activeCategory]);
+  }, [activeCategory, projects]);
 
   return (
     <section
@@ -38,15 +41,15 @@ export function Projects() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <SectionHeading
             label="Projects & Case Studies"
-            title="Một số dự án thực tế mình đã xây dựng"
-            description="Phân tích bài toán, kiến trúc hệ thống và kết quả đạt được của từng sản phẩm."
+            title={t("Một số dự án thực tế mình đã xây dựng")}
+            description={t("Phân tích bài toán, kiến trúc hệ thống và kết quả đạt được của từng sản phẩm.")}
           />
           <Link
-            href="/projects"
+            href={href("/projects")}
             className="inline-flex items-center gap-1.5 text-sm font-medium shrink-0 mb-4 transition-colors hover:text-[var(--accent-color)]"
             style={{ color: "var(--text-secondary)" }}
           >
-            Xem tất cả ({projects.length})
+            {t("Xem tất cả ({count})", { count: projects.length })}
             <ArrowRight size={14} />
           </Link>
         </div>
@@ -75,7 +78,7 @@ export function Projects() {
                       }
                 }
               >
-                {category}
+                {category === "Tất cả" ? t("Tất cả") : category}
               </button>
             );
           })}

@@ -10,10 +10,10 @@ import { ChatWidget } from "@/components/shared/chat-widget";
 import { ImageLightbox } from "@/components/shared/image-lightbox";
 import { ProjectCard } from "@/components/shared/project-card";
 import { projects, getProjectBySlug } from "@/data/projects";
+import { getI18n } from "@/i18n/server";
+import { locales, localePath } from "@/i18n/config";
 
-interface Props {
-  params: Promise<{ slug: string }>;
-}
+type Props = PageProps<"/[lang]/projects/[slug]">;
 
 export async function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -21,21 +21,30 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
-  if (!project) return {};
+  const raw = getProjectBySlug(slug);
+  if (!raw) return {};
+  const { locale, tr } = await getI18n();
+  const project = tr(raw);
   return {
     title: `${project.title} — Case Study`,
     description: project.shortDescription,
+    alternates: {
+      canonical: localePath(locale, `/projects/${slug}`),
+      languages: Object.fromEntries(locales.map((l) => [l, localePath(l, `/projects/${slug}`)])),
+    },
   };
 }
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
+  const raw = getProjectBySlug(slug);
 
-  if (!project) notFound();
+  if (!raw) notFound();
 
-  const relatedProjects = projects
+  const { t, tr, href } = await getI18n();
+  const project = tr(raw);
+
+  const relatedProjects = tr(projects)
     .filter((p) => p.slug !== project.slug)
     .slice(0, 2);
 
@@ -49,12 +58,12 @@ export default async function ProjectDetailPage({ params }: Props) {
         <div className="container-width">
           {/* Back */}
           <Link
-            href="/#projects"
+            href={href("/#projects")}
             className="inline-flex items-center gap-1.5 text-sm mb-8 transition-colors hover:text-[var(--accent-color)]"
             style={{ color: "var(--text-secondary)" }}
           >
             <ArrowLeft size={14} />
-            Quay lại danh sách dự án
+            {t("Quay lại danh sách dự án")}
           </Link>
 
           {/* Header */}
@@ -126,7 +135,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                     }}
                   >
                     <ExternalLink size={15} />
-                    Xem Live Demo
+                    {t("Xem Live Demo")}
                   </a>
                 )}
               </div>
@@ -175,7 +184,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                   className="text-lg font-semibold mb-3"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Tổng quan dự án
+                  {t("Tổng quan dự án")}
                 </h2>
                 <p
                   className="text-sm md:text-base leading-relaxed"
@@ -197,7 +206,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-base font-semibold mb-2.5"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    🎯 Bài toán thực tế
+                    {t("🎯 Bài toán thực tế")}
                   </h2>
                   <p
                     className="text-sm leading-relaxed"
@@ -218,7 +227,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-base font-semibold mb-2.5"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    💡 Giải pháp kỹ thuật
+                    {t("💡 Giải pháp kỹ thuật")}
                   </h2>
                   <p
                     className="text-sm leading-relaxed"
@@ -244,7 +253,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                       className="text-base font-semibold"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Kiến trúc hệ thống (System Architecture)
+                      {t("Kiến trúc hệ thống (System Architecture)")}
                     </h2>
                   </div>
                   <p
@@ -304,7 +313,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                   className="text-lg font-semibold mb-4"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Tính năng chính đã triển khai
+                  {t("Tính năng chính đã triển khai")}
                 </h2>
                 <ul className="grid sm:grid-cols-2 gap-3">
                   {project.features.map((f) => (
@@ -342,7 +351,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                   className="text-xs font-semibold tracking-widest uppercase mb-3"
                   style={{ color: "var(--accent-color)" }}
                 >
-                  Tech Stack sử dụng
+                  {t("Tech Stack sử dụng")}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {project.technologies.map((tech) => (
@@ -373,7 +382,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
-                    Vai trò đảm nhiệm
+                    {t("Vai trò đảm nhiệm")}
                   </p>
                   <p
                     className="text-sm font-medium"
@@ -387,7 +396,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
-                    Năm thực hiện
+                    {t("Năm thực hiện")}
                   </p>
                   <p
                     className="text-sm"
@@ -401,15 +410,15 @@ export default async function ProjectDetailPage({ params }: Props) {
                     className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: "var(--accent-color)" }}
                   >
-                    Trạng thái
+                    {t("Trạng thái")}
                   </p>
                   <p
                     className="text-sm"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {project.status === "completed"
-                      ? "Đã hoàn thành & bàn giao"
-                      : "Đang vận hành & phát triển"}
+                      ? t("Đã hoàn thành & bàn giao")
+                      : t("Đang vận hành & phát triển")}
                   </p>
                 </div>
               </div>
@@ -426,20 +435,20 @@ export default async function ProjectDetailPage({ params }: Props) {
                   className="text-sm font-semibold mb-1.5"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Bạn cần xây dựng hệ thống tương tự?
+                  {t("Bạn cần xây dựng hệ thống tương tự?")}
                 </p>
                 <p
                   className="text-xs leading-relaxed mb-4"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Mình có thể tư vấn kiến trúc, ước tính chi phí và lộ trình phát triển phù hợp với ngân sách của bạn.
+                  {t("Mình có thể tư vấn kiến trúc, ước tính chi phí và lộ trình phát triển phù hợp với ngân sách của bạn.")}
                 </p>
                 <Link
-                  href="/#contact"
+                  href={href("/#contact")}
                   className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90"
                   style={{ backgroundColor: "var(--accent-color)" }}
                 >
-                  Nhận tư vấn & báo giá
+                  {t("Nhận tư vấn & báo giá")}
                   <ArrowRight size={14} />
                 </Link>
               </div>
@@ -457,14 +466,14 @@ export default async function ProjectDetailPage({ params }: Props) {
                   className="text-lg font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Các dự án tiêu biểu khác
+                  {t("Các dự án tiêu biểu khác")}
                 </h2>
                 <Link
-                  href="/projects"
+                  href={href("/projects")}
                   className="text-sm font-medium transition-colors hover:text-[var(--accent-color)]"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  Xem tất cả →
+                  {t("Xem tất cả →")}
                 </Link>
               </div>
               <div className="grid sm:grid-cols-2 gap-6">

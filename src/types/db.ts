@@ -81,6 +81,30 @@ export interface Database {
         };
         Relationships: [];
       };
+      translations: {
+        Row: {
+          id: string;
+          created_at: string;
+          source_hash: string;
+          source_lang: string;
+          target_lang: string;
+          source_text: string;
+          translated_text: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          source_hash: string;
+          source_lang: string;
+          target_lang: string;
+          source_text: string;
+          translated_text: string;
+        };
+        Update: {
+          translated_text?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

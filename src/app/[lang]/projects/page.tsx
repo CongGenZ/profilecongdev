@@ -8,14 +8,25 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { ChatWidget } from "@/components/shared/chat-widget";
+import { getI18n } from "@/i18n/server";
+import { locales, localePath } from "@/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Tất cả dự án & Case Studies | Cong Dev",
-  description:
-    "Danh sách các dự án website, hệ thống Microservices và ứng dụng thực tế đã thực hiện bởi Cong Dev.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t, locale } = await getI18n();
+  return {
+    title: t("Tất cả dự án & Case Studies"),
+    description: t(
+      "Danh sách các dự án website, hệ thống Microservices và ứng dụng thực tế đã thực hiện bởi Cong Dev.",
+    ),
+    alternates: {
+      canonical: localePath(locale, "/projects"),
+      languages: Object.fromEntries(locales.map((l) => [l, localePath(l, "/projects")])),
+    },
+  };
+}
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const { t, tr, href } = await getI18n();
   return (
     <>
       <Header />
@@ -26,25 +37,25 @@ export default function ProjectsPage() {
         <div className="container-width">
           <div className="mb-8">
             <Link
-              href="/"
+              href={href("/")}
               className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:text-[var(--accent-color)]"
               style={{ color: "var(--text-secondary)" }}
             >
               <ArrowLeft size={16} />
-              Quay lại trang chủ
+              {t("Quay lại trang chủ")}
             </Link>
           </div>
 
           <div className="mb-12">
             <SectionHeading
               label="Portfolio & Case Studies"
-              title="Tất cả dự án đã triển khai"
-              description="Tổng hợp các dự án website, hệ thống Microservices và giải pháp phần mềm mình đã xây dựng và tham gia phát triển."
+              title={t("Tất cả dự án đã triển khai")}
+              description={t("Tổng hợp các dự án website, hệ thống Microservices và giải pháp phần mềm mình đã xây dựng và tham gia phát triển.")}
             />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-6">
-            {projects.map((project) => (
+            {tr(projects).map((project) => (
               <ProjectCard key={project.slug} project={project} />
             ))}
           </div>

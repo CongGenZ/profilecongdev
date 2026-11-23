@@ -10,6 +10,7 @@ import {
   type FieldValues,
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 const Form = FormProvider;
 
@@ -144,7 +145,9 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  const { t } = useI18n();
+  // Thông báo lỗi validation (zod) được viết bằng tiếng Việt → dịch theo locale hiện tại
+  const body = error ? t(String(error?.message)) : children;
 
   if (!body) {
     return null;

@@ -4,7 +4,8 @@ import Image from "next/image";
 import { ArrowRight, Circle, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SocialLinks } from "@/components/shared/social-links";
-import { profile } from "@/data/profile";
+import { profile as rawProfile } from "@/data/profile";
+import { useI18n } from "@/i18n/provider";
 import { motion } from "motion/react";
 
 const fadeUp = {
@@ -13,6 +14,8 @@ const fadeUp = {
 };
 
 export function Hero() {
+  const { t, tr } = useI18n();
+  const profile = tr(rawProfile);
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
@@ -54,7 +57,7 @@ export function Hero() {
                 className="text-sm mb-2"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Xin chào, mình là {profile.name}
+                {t("Xin chào, mình là {name}", { name: profile.name })}
               </p>
 
               <h1
@@ -68,7 +71,7 @@ export function Hero() {
                 className="text-base md:text-lg leading-relaxed max-w-lg mb-8"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Mình là một Web Developer, chuyên phát triển website, ứng dụng và các giải pháp phần mềm. Mình nhận triển khai dự án từ ý tưởng đến sản phẩm hoàn thiện.
+                {t("Mình là một Web Developer, chuyên phát triển website, ứng dụng và các giải pháp phần mềm. Mình nhận triển khai dự án từ ý tưởng đến sản phẩm hoàn thiện.")}
               </p>
 
               {/* CTAs */}
@@ -81,7 +84,7 @@ export function Hero() {
                   }}
                   onClick={() => scrollTo("contact")}
                 >
-                  Trao đổi dự án
+                  {t("Trao đổi dự án")}
                   <ArrowRight size={15} className="ml-1" />
                 </Button>
                 <Button
@@ -95,7 +98,7 @@ export function Hero() {
                   onClick={() => scrollTo("estimator")}
                 >
                   <Calculator size={15} style={{ color: "var(--accent-color)" }} />
-                  Ước tính chi phí
+                  {t("Ước tính chi phí")}
                 </Button>
                 <Button
                   variant="outline"
@@ -107,7 +110,7 @@ export function Hero() {
                   }}
                   onClick={() => scrollTo("projects")}
                 >
-                  Xem dự án
+                  {t("Xem dự án")}
                 </Button>
               </div>
 

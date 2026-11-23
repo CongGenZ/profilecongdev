@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { profile } from "@/data/profile";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
+import { useI18n } from "@/i18n/provider";
+import { stripLocale } from "@/i18n/config";
 
 const navLinks = [
   { label: "Home", href: "#home" },
@@ -31,6 +34,7 @@ export function Header() {
   const [dark, setDark] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { t, href: localeHref } = useI18n();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -74,13 +78,13 @@ export function Header() {
     setOpen(false);
     const id = href.replace("#", "");
 
-    if (pathname === "/") {
+    if (stripLocale(pathname) === "/") {
       const el = document.getElementById(id);
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
       }
     } else {
-      router.push(`/${href}`);
+      router.push(localeHref(`/${href}`));
     }
   };
 
@@ -98,7 +102,7 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link
-              href="/"
+              href={localeHref("/")}
               aria-label={profile.displayName}
               className="flex items-center transition-transform hover:scale-105 group"
             >
@@ -136,7 +140,7 @@ export function Header() {
                 onClick={() =>
                   window.dispatchEvent(new CustomEvent("open-command-palette"))
                 }
-                title="Tìm kiếm nhanh (Ctrl + K)"
+                title={t("Tìm kiếm nhanh (Ctrl + K)")}
                 className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border text-xs transition-colors hover:border-[var(--accent-color)] cursor-pointer"
                 style={{
                   borderColor: "var(--border-color)",
@@ -145,7 +149,7 @@ export function Header() {
                 }}
               >
                 <Search size={13} />
-                <span className="hidden sm:inline">Tìm nhanh</span>
+                <span className="hidden sm:inline">{t("Tìm nhanh")}</span>
                 <kbd
                   className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded border"
                   style={{
@@ -157,12 +161,15 @@ export function Header() {
                 </kbd>
               </button>
 
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+
               {/* Dark / Light Mode Toggle */}
               <button
                 type="button"
                 onClick={toggleTheme}
-                aria-label="Đổi giao diện Sáng / Tối"
-                title={dark ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"}
+                aria-label={t("Đổi giao diện Sáng / Tối")}
+                title={dark ? t("Chuyển sang chế độ Sáng") : t("Chuyển sang chế độ Tối")}
                 className="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors hover:border-[var(--accent-color)] cursor-pointer"
                 style={{
                   borderColor: "var(--border-color)",
